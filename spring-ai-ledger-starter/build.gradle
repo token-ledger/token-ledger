@@ -1,0 +1,7 @@
+dependencies {
+    api project(':spring-ai-ledger-core')
+    api project(':spring-ai-ledger-spring-ai')
+    api project(':spring-ai-ledger-micrometer')
+    api project(':spring-ai-ledger-budget')
+    api project(':spring-ai-ledger-autoconfigure')
+}

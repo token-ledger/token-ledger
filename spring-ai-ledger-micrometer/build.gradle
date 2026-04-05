@@ -1,0 +1,5 @@
+dependencies {
+    api project(':spring-ai-ledger-core')
+    implementation 'io.micrometer:micrometer-observation'
+    implementation 'io.micrometer:micrometer-core'
+}

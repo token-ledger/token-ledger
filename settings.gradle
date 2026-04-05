@@ -1,0 +1,8 @@
+rootProject.name = 'spring-ai-ledger'
+
+include 'spring-ai-ledger-core'
+include 'spring-ai-ledger-spring-ai'
+include 'spring-ai-ledger-micrometer'
+include 'spring-ai-ledger-budget'
+include 'spring-ai-ledger-autoconfigure'
+include 'spring-ai-ledger-starter'

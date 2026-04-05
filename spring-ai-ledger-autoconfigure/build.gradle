@@ -1,0 +1,7 @@
+dependencies {
+    implementation project(':spring-ai-ledger-core')
+    implementation project(':spring-ai-ledger-spring-ai')
+    implementation project(':spring-ai-ledger-micrometer')
+    implementation 'org.springframework.boot:spring-boot-autoconfigure'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+}

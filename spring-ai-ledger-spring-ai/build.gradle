@@ -1,0 +1,5 @@
+dependencies {
+    api project(':spring-ai-ledger-core')
+    // Spring AI Core 의존성
+    implementation 'org.springframework.ai:spring-ai-core'
+}
