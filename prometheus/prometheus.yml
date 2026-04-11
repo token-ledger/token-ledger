@@ -1,0 +1,11 @@
+# prometheus/prometheus.yml
+
+global:
+  scrape_interval: 10s # 10초마다 데이터를 수집하라는 뜻
+
+scrape_configs:
+  - job_name: 'spring-ai-ledger-backend'
+    metrics_path: '/actuator/prometheus' # 백엔드 개발자가 데이터를 내보낼 주소
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+        # (중요!) 도커 안에서 내 컴퓨터(로컬)의 8080포트로 접속하기 위한 마법의 주소입니다.
