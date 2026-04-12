@@ -7,11 +7,11 @@ import java.util.Optional;
  */
 public interface PricingRegistry {
     /**
-     * 모델 이름으로 등록된 가격 정책을 조회합니다.
-     * @param modelName 모델 이름
+     * 모델 식별자로 등록된 가격 정책을 조회합니다.
+     * @param modelId 모델 식별자
      * @return 가격 정책 (존재하지 않을 경우 empty)
      */
-    Optional<PricingPlan> getPlan(String modelName);
+    Optional<PricingPlan> getPlan(String modelId);
 
     /**
      * 새로운 가격 정책을 등록하거나 업데이트합니다.

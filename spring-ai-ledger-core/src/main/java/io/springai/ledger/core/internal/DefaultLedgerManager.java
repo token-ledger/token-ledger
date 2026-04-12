@@ -19,14 +19,13 @@ public class DefaultLedgerManager implements LedgerManager {
     }
 
     @Override
-    public Cost record(String modelName, TokenUsage usage, Map<String, String> tags) {
-        Optional<PricingPlan> planOpt = pricingRegistry.getPlan(modelName);
+    public Cost record(String modelId, TokenUsage usage, Map<String, String> tags) {
+        Optional<PricingPlan> planOpt = pricingRegistry.getPlan(modelId);
 
         Cost cost = planOpt
                 .map(plan -> costCalculator.calculate(usage, plan))
                 .orElse(Cost.zero());
 
-        // Note: 향후 여기서 Micrometer 메트릭 발행 및 Budget 체크 로직이 호출될 예정입니다.
         return cost;
     }
 }

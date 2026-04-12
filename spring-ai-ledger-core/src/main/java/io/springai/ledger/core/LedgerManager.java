@@ -8,10 +8,10 @@ import java.util.Map;
 public interface LedgerManager {
     /**
      * 특정 모델의 호출 정보를 기록하고 최종 비용을 계산합니다.
-     * @param modelName 모델 이름
-     * @param usage     토큰 사용량
-     * @param tags      추가 메타데이터 (tenant_id, user_id 등)
+     * @param modelId 모델 식별자
+     * @param usage   토큰 사용량
+     * @param tags    추가 메타데이터 (tenant_id, user_id 등)
      * @return 산출된 비용
      */
-    Cost record(String modelName, TokenUsage usage, Map<String, String> tags);
+    Cost record(String modelId, TokenUsage usage, Map<String, String> tags);
 }

@@ -14,12 +14,12 @@ public class InMemoryPricingRegistry implements PricingRegistry {
     private final Map<String, PricingPlan> plans = new ConcurrentHashMap<>();
 
     @Override
-    public Optional<PricingPlan> getPlan(String modelName) {
-        return Optional.ofNullable(plans.get(modelName));
+    public Optional<PricingPlan> getPlan(String modelId) {
+        return Optional.ofNullable(plans.get(modelId));
     }
 
     @Override
     public void registerPlan(PricingPlan plan) {
-        plans.put(plan.modelName(), plan);
+        plans.put(plan.modelId(), plan);
     }
 }
