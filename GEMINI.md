@@ -49,7 +49,8 @@ io.springai.ledger.{module}
 ### 현재 상태 (Progress)
 - [x] **프로젝트 초기화:** Java 25, Spring Boot 4.0.5 기반 멀티 모듈 구조 확립.
 - [x] **핵심 인터페이스 및 아키텍처 설계:** 4계층 레이어 및 내부 패키지 전략 수립.
-- [ ] **Core 도메인 구현 (Next Step):** `TokenUsage`, `Cost`, `PricingPlan` 등 핵심 모델 작성.
+- [x] **Core 도메인 구현 (MVP):** `TokenUsage`, `Cost`, `PricingPlan` 모델 및 `LedgerManager` 구현 완료.
+- [ ] **Spring AI 연동 (Next Step):** Advisor를 통한 Usage 자동 추출 및 Ledger 연결.
 
 ---
 
