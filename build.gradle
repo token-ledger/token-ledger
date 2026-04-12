@@ -18,6 +18,7 @@ allprojects {
 subprojects {
     apply plugin: 'java-library'
     apply plugin: 'io.spring.dependency-management'
+    apply plugin: 'org.springframework.boot' // 경진 추가
 
     java {
         toolchain {
