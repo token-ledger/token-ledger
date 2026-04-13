@@ -1,0 +1,12 @@
+dependencies {
+    api project(':token-ledger-core')
+
+    // Spring AI의 핵심 인터페이스 (BOM에 의해 버전 결정됨)
+    implementation 'org.springframework.ai:spring-ai-core'
+    
+    // Reactor (스트리밍 처리를 위한 Flux 등)
+    implementation 'io.projectreactor:reactor-core'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}

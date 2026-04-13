@@ -1,0 +1,7 @@
+dependencies {
+    api project(':token-ledger-core')
+    api project(':token-ledger-spring-ai')
+    api project(':token-ledger-micrometer')
+    api project(':token-ledger-budget')
+    api project(':token-ledger-autoconfigure')
+}
