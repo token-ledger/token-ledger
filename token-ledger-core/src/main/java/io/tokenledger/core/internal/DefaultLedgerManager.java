@@ -12,10 +12,12 @@ import java.util.Optional;
 public class DefaultLedgerManager implements LedgerManager {
     private final PricingRegistry pricingRegistry;
     private final CostCalculator costCalculator;
+    private final CostMetricsPublisher costMetricsPublisher;
 
-    public DefaultLedgerManager(PricingRegistry pricingRegistry, CostCalculator costCalculator) {
+    public DefaultLedgerManager(PricingRegistry pricingRegistry, CostCalculator costCalculator, CostMetricsPublisher costMetricsPublisher) {
         this.pricingRegistry = pricingRegistry;
         this.costCalculator = costCalculator;
+        this.costMetricsPublisher = costMetricsPublisher;
     }
 
     @Override
@@ -25,6 +27,8 @@ public class DefaultLedgerManager implements LedgerManager {
         Cost cost = planOpt
                 .map(plan -> costCalculator.calculate(usage, plan))
                 .orElse(Cost.zero());
+
+        costMetricsPublisher.publish(modelId,usage,cost);
 
         return cost;
     }
