@@ -42,15 +42,16 @@ io.tokenledger.{module}
 
 ### 진행 단계 (Roadmap)
 - **Phase 1 (MVP):** 핵심 측정 및 Micrometer 시각화 연동. (진행 중)
-- **Phase 1.5:** 스트리밍 응답 추적 및 토큰 추산(Fallback) 로직 강화.
+- **Phase 1.5:** 스트리밍 응답 추적 및 토큰 추산(Fallback) 로직 강화. (완료 - Spring AI 1.1.4 대응)
 - **Phase 2:** 멀티 테넌시 식별 및 고카디널리티 방어.
 - **Phase 3:** 예산 통제(Budget Control) 및 정책 엔진 도입.
 
 ### 현재 상태 (Progress)
 - [x] **프로젝트 초기화:** Java 25, Spring Boot 4.0.5 기반 멀티 모듈 구조 확립.
 - [x] **핵심 인터페이스 및 아키텍처 설계:** 4계층 레이어 및 내부 패키지 전략 수립.
-- [x] **Core 도메인 구현 (MVP):** `TokenUsage`, `Cost`, `PricingPlan` 모델 및 `LedgerManager` 구현 완료.
-- [ ] **Spring AI 연동 (Next Step):** Advisor를 통한 Usage 자동 추출 및 Ledger 연결.
+- [x] **Core 도메인 고도화:** `TokenType`(Reasoning, Cached 등) 도입 및 정밀 비용 계산 로직 구현 완료.
+- [x] **Spring AI 연동:** Spring AI 1.1.4 정식 버전 기반 `LedgerAdvisor` 및 `UsageExtractor` 구현 완료.
+- [ ] **자동 설정 구현 (진행 중):** `autoconfigure` 모듈을 통한 Zero-config 빈 등록 처리.
 
 ---
 
@@ -59,11 +60,11 @@ io.tokenledger.{module}
 ### 모듈 역할 상세
 | 모듈명 | 역할 | 상태 |
 | :--- | :--- | :--- |
-| `token-ledger-core` | 비용 계산 로직, Usage 추상화, 핵심 인터페이스 | 뼈대 생성 |
-| `token-ledger-spring-ai` | ChatModel 어드바이저, Usage 추출 및 변환 | 뼈대 생성 |
+| `token-ledger-core` | 비용 계산 로직, Usage 추상화, 핵심 인터페이스 | 구현 완료 |
+| `token-ledger-spring-ai` | ChatModel 어드바이저, Usage 추출 및 변환 | 구현 완료 |
 | `token-ledger-micrometer` | MeterRegistry 연동, 비용 메트릭 발행 | 뼈대 생성 |
 | `token-ledger-budget` | 예산 통제, 정책 엔진, 한도 초과 처리 (ERP 협업) | 뼈대 생성 |
-| `token-ledger-autoconfigure` | @AutoConfiguration, 프로퍼티 바인딩 | 뼈대 생성 |
+| `token-ledger-autoconfigure` | @AutoConfiguration, 프로퍼티 바인딩 | 진행 중 |
 | `token-ledger-starter` | 사용자용 통합 의존성 진입점 | 뼈대 생성 |
 
 ### 핵심 인터페이스 스펙
@@ -75,6 +76,26 @@ io.tokenledger.{module}
 ---
 
 ## 🧠 주요 기술적 챌린지 (Technical Challenges)
-1. **스트리밍 응답 추적:** Flux 응답의 마지막 청크에서 Usage를 정확히 캡처하는 로직.
-2. **고카디널리티 제어:** 가변 태그(user_id 등)가 Prometheus 메모리에 주는 부하 방어.
-3. **Context 전파:** MVC/WebFlux 환경에서 테넌트 식별자 유실 방지.
+1. **Spring AI 1.1.x 모듈 분리 대응:** `spring-ai-core` 삭제에 따른 `model`, `client-chat` 모듈 정밀 타겟팅.
+2. **추론 토큰(Reasoning) 정산:** OpenAI o1 등 최신 모델의 메타데이터 내 특수 토큰 추출 로직 확보.
+3. **스트리밍 일관성:** `BaseAdvisor`를 활용한 동기/비동기 호출의 일관된 사용량 캡처.
+4. **고카디널리티 제어:** 가변 태그(user_id 등)가 Prometheus 메모리에 주는 부하 방어.
+5. **Context 전파:** MVC/WebFlux 환경에서 테넌트 식별자 유실 방지.
+
+---
+
+## 📝 주요 업데이트 이력 (Update History)
+
+### 📅 2026-04-14
+- **Core 모듈 고도화**: 
+    - `TokenType` 열거형 도입으로 토큰 유형(PROMPT, COMPLETION, REASONING, CACHED) 세분화.
+    - `PricingPlan`에 토큰 타입별 차등 단가 및 Fallback 로직 반영.
+    - `BigDecimal`을 이용한 10자리 정밀도 연산 및 6자리 반올림 정책 확립.
+- **Spring AI 정식 버전(1.1.4) 안착**:
+    - **이슈 해결**: `spring-ai-core` 모듈 삭제 및 `spring-ai-model`, `spring-ai-client-chat` 분리 대응.
+    - **Advisor 구현**: 최신 `BaseAdvisor` 기반 `LedgerAdvisor` 인터페이스 정의.
+    - **데이터 추출**: `ChatClientResponse`의 Java Record 규격 및 `ChatResponseMetadata` 연동 완료.
+    - **테스트**: `DefaultUsageExtractor` 및 `DefaultLedgerAdvisor` 유닛 테스트 통과 (100%).
+- **인프라 설정**: 
+    - `spring-ai-bom:1.1.4` 적용 및 리포지토리 우선순위 조정.
+    - `token-ledger-autoconfigure` 모듈 `build.gradle` 세팅 완료.

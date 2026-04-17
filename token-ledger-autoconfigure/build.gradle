@@ -1,7 +1,10 @@
 dependencies {
-    implementation project(':token-ledger-core')
-    implementation project(':token-ledger-spring-ai')
-    implementation project(':token-ledger-micrometer')
+    api project(':token-ledger-core')
+    compileOnly project(':token-ledger-spring-ai')
+
     implementation 'org.springframework.boot:spring-boot-autoconfigure'
+    
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
