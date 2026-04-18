@@ -3,24 +3,17 @@ package io.springaileger.budget;
 import java.math.BigDecimal;
 import java.util.Map;
 
+
 /**
- * BudgetStateStore는 "지금까지 얼마를 썼는지"를 관리하는 역할을 한다.
+ * 예산 판단을 위해 비용 누적 상태를 관리하는 저장소 인터페이스입니다.
  *
- * 예:
- * - tenant A가 이번 달에 얼마를 썼는지
- * - user B가 오늘 얼마를 썼는지
- *
- * MVP에서는 InMemory 구현만으로 충분하다.
+ * 예산 식별자별(예: tenant)로 비용을 조회하고
+ * 누적하는 책임을 가집니다.
  */
+
 public interface BudgetStateStore {
 
-  /**
-   * 현재까지 누적된 비용을 반환한다.
-   */
   BigDecimal getAccumulatedCost(Map<String, String> tags);
 
-  /**
-   * 새로운 비용을 누적한다.
-   */
   void addCost(Map<String, String> tags, BigDecimal amount);
 }

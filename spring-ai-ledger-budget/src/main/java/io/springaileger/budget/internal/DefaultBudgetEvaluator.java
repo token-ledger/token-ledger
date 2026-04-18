@@ -1,17 +1,19 @@
-package io.springaileger.budget;
+package io.springaileger.budget.internal;
+
+import io.springaileger.budget.*;
 
 import java.math.BigDecimal;
 import java.util.Map;
 
 /**
- * DefaultBudgetEvaluator는
- * "이번 AI 호출을 허용할지 말지"를 판단한다.
+ * BudgetEvaluator의 기본 구현체입니다.
  *
  * 판단 기준:
  * - 80% 미만  → ALLOW
  * - 80% 이상  → WARN
  * - 100% 이상 → BLOCK (예외 발생)
  */
+
 public class DefaultBudgetEvaluator implements BudgetEvaluator {
 
   private final BudgetStateStore store;

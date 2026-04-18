@@ -1,29 +1,23 @@
-package io.springaileger.budget;
+package io.springaileger.budget.internal;
+
+import io.springaileger.budget.BudgetStateStore;
 
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+
 /**
- * InMemoryBudgetStateStore는
- * 메모리 안에서 예산 사용량을 누적하는 가장 단순한 구현체이다.
+ * BudgetStateStore의 인메모리 기반 구현체입니다.
  *
- * ✅ 대학 프로젝트 / MVP에 매우 적합
- * ❌ 서버 재시작 시 데이터는 사라짐 (실서비스면 Redis/DB 사용)
+ * 예산 사용량을 메모리 내에서 누적 관리하며,
+ * 테스트 및 간단한 실행 환경을 위한 구현입니다.
  */
+
 public class InMemoryBudgetStateStore implements BudgetStateStore {
 
-  /**
-   * key : 예산 식별자 (예: tenant_id)
-   * value : 지금까지 사용한 총 비용
-   */
   private final Map<String, BigDecimal> store = new ConcurrentHashMap<>();
 
-  /**
-   * tags에서 어떤 값을 기준으로 예산을 나눌지 결정한다.
-   *
-   * 여기서는 tenant_id 기준으로 예산을 관리한다.
-   */
   private String key(Map<String, String> tags) {
     return tags.getOrDefault("tenant_id", "default");
   }
