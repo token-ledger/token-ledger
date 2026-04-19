@@ -3,6 +3,7 @@ package io.tokenledger.springai.internal;
 import io.tokenledger.budget.BudgetEvaluator;
 import io.tokenledger.budget.BudgetStateStore;
 import io.tokenledger.core.*;
+import io.tokenledger.core.domain.*;
 import io.tokenledger.springai.LedgerAdvisor;
 import io.tokenledger.springai.UsageExtractor;
 import org.springframework.ai.chat.client.ChatClientRequest;

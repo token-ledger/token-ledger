@@ -1,5 +1,9 @@
 package io.tokenledger.core;
 
+import io.tokenledger.core.domain.Cost;
+import io.tokenledger.core.domain.PricingPlan;
+import io.tokenledger.core.domain.TokenUsage;
+
 /**
  * 사용량과 가격 정책을 바탕으로 비용을 계산하는 인터페이스.
  */

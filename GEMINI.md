@@ -86,6 +86,13 @@ io.tokenledger.{module}
 
 ## 📝 주요 업데이트 이력 (Update History)
 
+### 📅 2026-04-19
+- **Core 모듈 패키지 구조 최적화 및 캡슐화**:
+    - **도메인 모델 분리**: `Cost`, `TokenUsage`, `PricingPlan` 등 데이터 모델을 `io.tokenledger.core.domain` 패키지로 이동하여 인터페이스와 데이터 모델의 역할 분리.
+    - **가시성 제어 강화**: `internal` 패키지 내의 기본 구현체(`DefaultLedgerManager`, `DefaultCostCalculator`, `InMemoryPricingRegistry`)를 `package-private`으로 변경하여 외부 노출 차단 및 아키텍처 정합성 확보.
+    - **전체 모듈 영향도 전파**: `spring-ai`, `micrometer`, `budget` 등 모든 하위 모듈의 참조 경로를 새로운 도메인 패키지로 업데이트 완료.
+    - **안정성 검증**: 모든 모듈의 유닛 테스트를 수행하여 리팩토링 후에도 기능적 동일성 유지 확인.
+
 ### 📅 2026-04-14
 - **Core 모듈 고도화**: 
     - `TokenType` 열거형 도입으로 토큰 유형(PROMPT, COMPLETION, REASONING, CACHED) 세분화.

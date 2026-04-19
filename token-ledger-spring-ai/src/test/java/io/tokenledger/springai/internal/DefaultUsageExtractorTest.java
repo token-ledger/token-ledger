@@ -1,7 +1,7 @@
 package io.tokenledger.springai.internal;
 
-import io.tokenledger.core.TokenType;
-import io.tokenledger.core.TokenUsage;
+import io.tokenledger.core.domain.TokenType;
+import io.tokenledger.core.domain.TokenUsage;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClientResponse;

@@ -1,16 +1,17 @@
 package io.tokenledger.core.internal;
 
-import io.tokenledger.core.PricingPlan;
 import io.tokenledger.core.PricingRegistry;
+import io.tokenledger.core.domain.PricingPlan;
 
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+
 /**
  * 메모리 기반 가격 정책 저장소 구현체.
  */
-public class InMemoryPricingRegistry implements PricingRegistry {
+class InMemoryPricingRegistry implements PricingRegistry {
     private final Map<String, PricingPlan> plans = new ConcurrentHashMap<>();
 
     @Override

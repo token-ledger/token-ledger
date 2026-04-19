@@ -5,6 +5,7 @@ import io.tokenledger.budget.BudgetEvaluator;
 import io.tokenledger.budget.BudgetState;
 import io.tokenledger.budget.BudgetStateStore;
 import io.tokenledger.core.*;
+import io.tokenledger.core.domain.*;
 import io.tokenledger.springai.LedgerAdvisor;
 import io.tokenledger.springai.UsageExtractor;
 import org.junit.jupiter.api.DisplayName;

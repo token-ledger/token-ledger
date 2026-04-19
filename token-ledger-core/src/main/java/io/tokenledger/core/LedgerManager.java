@@ -1,5 +1,8 @@
 package io.tokenledger.core;
 
+import io.tokenledger.core.domain.Cost;
+import io.tokenledger.core.domain.TokenUsage;
+
 import java.util.Map;
 
 /**
