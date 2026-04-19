@@ -1,6 +1,6 @@
-package io.springaileger.budget.internal;
+package io.tokenledger.budget.internal;
 
-import io.springaileger.budget.BudgetStateStore;
+import io.tokenledger.budget.BudgetStateStore;
 
 import java.math.BigDecimal;
 import java.util.Map;

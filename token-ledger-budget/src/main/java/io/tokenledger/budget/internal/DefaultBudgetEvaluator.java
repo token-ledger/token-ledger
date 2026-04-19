@@ -1,6 +1,7 @@
-package io.springaileger.budget.internal;
+package io.tokenledger.budget.internal;
 
-import io.springaileger.budget.*;
+import io.tokenledger.budget.*;
+import io.tokenledger.budget.exception.BudgetExceededException;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -12,8 +13,10 @@ import java.util.Map;
  * - 80% 미만  → ALLOW
  * - 80% 이상  → WARN
  * - 100% 이상 → BLOCK (예외 발생)
+ *
+ * 이 클래스의 evaluate 메서드는 부수 효과가 없는 순수 함수로 동작합니다.
+ * 실제 비용 누적은 BudgetStateStore.addCost를 통해 별도로 수행해야 합니다.
  */
-
 public class DefaultBudgetEvaluator implements BudgetEvaluator {
 
   private final BudgetStateStore store;
@@ -28,6 +31,11 @@ public class DefaultBudgetEvaluator implements BudgetEvaluator {
   }
 
   @Override
+  public BudgetDecision evaluate(Map<String, String> tags) {
+    return evaluate(tags, BigDecimal.ZERO);
+  }
+
+  @Override
   public BudgetDecision evaluate(
       Map<String, String> tags,
       BigDecimal costAmount
@@ -36,7 +44,7 @@ public class DefaultBudgetEvaluator implements BudgetEvaluator {
     // ✅ 현재까지 누적 비용
     BigDecimal accumulated = store.getAccumulatedCost(tags);
 
-    // ✅ 이번 호출까지 포함한 비용
+    // ✅ 이번 호출까지 포함한 비용 (비교용)
     BigDecimal nextUsage = accumulated.add(costAmount);
 
     // ✅ 경고 기준 (80%)
@@ -62,9 +70,6 @@ public class DefaultBudgetEvaluator implements BudgetEvaluator {
        2️⃣ 경고 (WARN)
        ===================== */
     if (nextUsage.compareTo(warnThreshold) >= 0) {
-
-      store.addCost(tags, costAmount);
-
       return new BudgetDecision(
           BudgetState.WARN,
           "월 예산의 80%에 도달했습니다",
@@ -76,8 +81,6 @@ public class DefaultBudgetEvaluator implements BudgetEvaluator {
     /* =====================
        3️⃣ 허용 (ALLOW)
        ===================== */
-    store.addCost(tags, costAmount);
-
     return new BudgetDecision(
         BudgetState.ALLOW,
         "예산 범위 내입니다",

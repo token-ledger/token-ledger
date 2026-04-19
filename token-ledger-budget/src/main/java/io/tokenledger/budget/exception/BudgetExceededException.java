@@ -1,4 +1,7 @@
-package io.springaileger.budget;
+package io.tokenledger.budget.exception;
+
+import io.tokenledger.budget.BudgetDecision;
+
 /**
  * BudgetExceededException은 "LLM 호출을 멈추기 위해" 던지는 예외이다.
  *
