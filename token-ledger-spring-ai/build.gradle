@@ -1,5 +1,6 @@
 dependencies {
     api project(':token-ledger-core')
+    implementation project(':token-ledger-budget')
 
     // 1.1.x 버전부터 spring-ai-core가 분리됨
     implementation 'org.springframework.ai:spring-ai-model'
