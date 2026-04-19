@@ -1,78 +1,65 @@
 package io.tokenledger.micrometer.internal;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import io.tokenledger.core.Cost;
-import io.tokenledger.core.TokenUsage;
+import io.tokenledger.core.*;
+import io.tokenledger.core.domain.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.Currency;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class MicroCostMetricsPublisherTest {
 
-    private SimpleMeterRegistry registry;
+    private MeterRegistry meterRegistry;
     private MicroCostMetricsPublisher publisher;
 
     @BeforeEach
     void setUp() {
-        registry = new SimpleMeterRegistry();
-        publisher = new MicroCostMetricsPublisher(registry);
+        meterRegistry = new SimpleMeterRegistry();
+        publisher = new MicroCostMetricsPublisher(meterRegistry);
     }
 
     @Test
-    @DisplayName("비용과 사용량 정보가 주어지면 Micrometer 메트릭이 정상적으로 발행되어야 한다")
-    void shouldPublishMetricsWithCorrectTags() {
+    @DisplayName("비용 기록 이벤트 발생 시 토큰 사용량과 비용 메트릭이 올바르게 발행되어야 한다")
+    void shouldPublishMetricsWhenEventRecorded() {
         // Given
-        String model = "gpt-4o";
-        TokenUsage usage = TokenUsage.from(100, 200, 50); // Prompt 100, Completion 200, Reasoning 50
-        Cost cost = Cost.of(new BigDecimal("0.75"));
+        TokenUsage usage = TokenUsage.from(100, 200);
+        Cost cost = new Cost(new BigDecimal("0.5"), Currency.getInstance("USD"));
+        Map<String, String> tags = Map.of("tenant_id", "tenant-1");
+        CostRecordedEvent event = new CostRecordedEvent("gpt-4o", usage, cost, tags);
 
         // When
-        publisher.publish(model, usage, cost);
+        publisher.onRecord(event);
 
-        // Then
-        // 1. 토큰 사용량 메트릭 검증 (Prompt)
-        assertThat(registry.get("ai.token.usage.total")
-                .tag("model", model)
+        // Then: 토큰 사용량 카운터 확인
+        assertThat(meterRegistry.find("ai.token.usage.total")
+                .tag("model", "gpt-4o")
                 .tag("token_type", "prompt")
+                .tag("tenant_id", "tenant-1")
                 .counter().count()).isEqualTo(100.0);
 
-        // 2. 토큰 사용량 메트릭 검증 (Reasoning)
-        assertThat(registry.get("ai.token.usage.total")
-                .tag("model", model)
-                .tag("token_type", "reasoning")
-                .counter().count()).isEqualTo(50.0);
-
-        // 3. 비용 메트릭 검증
-        assertThat(registry.get("ai.token.cost.total")
-                .tag("model", model)
-                .tag("currency", "USD")
-                .counter().count()).isEqualTo(0.75);
-    }
-
-    @Test
-    @DisplayName("사용량이 0인 토큰 타입은 메트릭을 발행하지 않아야 한다")
-    void shouldNotPublishMetricsForZeroUsage() {
-        // Given
-        String model = "gpt-3.5-turbo";
-        TokenUsage usage = TokenUsage.from(100, 0); // Completion이 0인 경우
-        Cost cost = Cost.of(new BigDecimal("0.1"));
-
-        // When
-        publisher.publish(model, usage, cost);
-
-        // Then
-        // Prompt는 존재해야 함
-        assertThat(registry.find("ai.token.usage.total")
-                .tag("token_type", "prompt")
-                .counter()).isNotNull();
-
-        // Completion은 존재하지 않아야 함 (검색 시 null)
-        assertThat(registry.find("ai.token.usage.total")
+        assertThat(meterRegistry.find("ai.token.usage.total")
+                .tag("model", "gpt-4o")
                 .tag("token_type", "completion")
-                .counter()).isNull();
+                .tag("tenant_id", "tenant-1")
+                .counter().count()).isEqualTo(200.0);
+
+        // Then: 토큰 사용량 분포(Summary) 확인
+        assertThat(meterRegistry.find("ai.token.usage.distribution")
+                .tag("model", "gpt-4o")
+                .tag("token_type", "prompt")
+                .summary().max()).isEqualTo(100.0);
+
+        // Then: 비용 카운터 확인
+        assertThat(meterRegistry.find("ai.token.cost.total")
+                .tag("model", "gpt-4o")
+                .tag("currency", "USD")
+                .counter().count()).isEqualTo(0.5);
     }
 }

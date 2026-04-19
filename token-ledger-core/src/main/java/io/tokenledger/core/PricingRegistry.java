@@ -1,5 +1,7 @@
 package io.tokenledger.core;
 
+import io.tokenledger.core.domain.PricingPlan;
+
 import java.util.Optional;
 
 /**

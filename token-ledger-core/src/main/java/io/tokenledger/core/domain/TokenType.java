@@ -1,4 +1,4 @@
-package io.tokenledger.core;
+package io.tokenledger.core.domain;
 
 /**
  * AI 모델 호출 시 발생하는 토큰의 세부 유형.

@@ -1,6 +1,7 @@
 package io.tokenledger.core.internal;
 
-import io.tokenledger.core.PricingPlan;
+import io.tokenledger.core.domain.PricingPlan;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

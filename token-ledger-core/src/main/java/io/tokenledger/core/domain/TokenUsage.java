@@ -1,4 +1,4 @@
-package io.tokenledger.core;
+package io.tokenledger.core.domain;
 
 import java.util.Collections;
 import java.util.EnumMap;

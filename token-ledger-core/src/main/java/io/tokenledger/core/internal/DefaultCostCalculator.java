@@ -1,13 +1,14 @@
 package io.tokenledger.core.internal;
 
-import io.tokenledger.core.Cost;
 import io.tokenledger.core.CostCalculator;
-import io.tokenledger.core.PricingPlan;
-import io.tokenledger.core.TokenType;
-import io.tokenledger.core.TokenUsage;
+import io.tokenledger.core.domain.Cost;
+import io.tokenledger.core.domain.PricingPlan;
+import io.tokenledger.core.domain.TokenType;
+import io.tokenledger.core.domain.TokenUsage;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+
 import java.util.Map;
 
 /**
@@ -15,7 +16,7 @@ import java.util.Map;
  * 각 {@link TokenType} 별 단가를 적용하여 정밀하게 계산합니다.
  * 1K 토큰당 가격 정보를 사용하여 소수점 10자리까지 중간 계산 후 6자리로 최종 반올림합니다.
  */
-public class DefaultCostCalculator implements CostCalculator {
+class DefaultCostCalculator implements CostCalculator {
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
     @Override

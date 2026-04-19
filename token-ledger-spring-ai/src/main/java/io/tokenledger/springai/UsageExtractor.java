@@ -1,6 +1,6 @@
 package io.tokenledger.springai;
 
-import io.tokenledger.core.TokenUsage;
+import io.tokenledger.core.domain.TokenUsage;
 import org.springframework.ai.chat.client.ChatClientResponse;
 
 /**
