@@ -10,8 +10,6 @@ allprojects {
 
     repositories {
         mavenCentral()
-        maven { url 'https://repo.spring.io/milestone' }
-        maven { url 'https://repo.spring.io/snapshot' }
     }
 }
 
@@ -28,14 +26,14 @@ subprojects {
 
     dependencyManagement {
         imports {
-            mavenBom "org.springframework.ai:spring-ai-bom:1.1.0"
+            mavenBom "org.springframework.boot:spring-boot-dependencies:4.0.5"
+            mavenBom "org.springframework.ai:spring-ai-bom:1.1.4"
         }
     }
 
     dependencies {
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-        // [모니터링 환경 구축용]
         implementation 'org.springframework.boot:spring-boot-starter-actuator'
         runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
     }

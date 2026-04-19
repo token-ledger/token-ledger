@@ -1,0 +1,13 @@
+dependencies {
+    api project(':token-ledger-core')
+
+    // 1.1.x 버전부터 spring-ai-core가 분리됨
+    implementation 'org.springframework.ai:spring-ai-model'
+    implementation 'org.springframework.ai:spring-ai-client-chat'
+    
+    // Reactor (스트리밍 처리를 위한 Flux 등)
+    implementation 'io.projectreactor:reactor-core'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}
