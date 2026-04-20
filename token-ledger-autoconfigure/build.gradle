@@ -3,6 +3,7 @@ dependencies {
     compileOnly project(':token-ledger-spring-ai')
 
     implementation 'org.springframework.boot:spring-boot-autoconfigure'
+    implementation 'jakarta.annotation:jakarta.annotation-api'
     
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
