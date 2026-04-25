@@ -24,7 +24,8 @@ public class TokenLedgerAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public PricingProvider pricingProvider(TokenLedgerProperties properties) {
-        return properties::toPricingPlans;
+        var plans = properties.toPricingPlans();
+        return () -> plans;
     }
 
     /**
