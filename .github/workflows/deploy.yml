@@ -33,10 +33,14 @@ jobs:
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }} # 코드의 고유번호를 유통기한표(태그)로 사용합니다
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          echo "도커 이미지를 빌드합니다..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          echo "도커 이미지를 빌드합니다 (Commit Hash & Latest 태그)..."
+          # 커밋 해시 버전과 latest 버전 두 개를 동시에 빌드합니다.
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           
-          echo "AWS ECR 창고로 이미지를 전송합니다..."
+          echo "AWS ECR 창고로 두 태그 모두 전송합니다..."
+          # 고유 번호(Hash) 버전 푸시
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          # 최신판(latest) 버전 푸시
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
