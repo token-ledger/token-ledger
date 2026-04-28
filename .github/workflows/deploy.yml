@@ -6,7 +6,7 @@ on:
       - main # ⭐️ main 브랜치에 코드가 합쳐지면(Push) 자동으로 트럭이 출발합니다!
 
 env:
-  AWS_REGION: ap-northeast-2              # 서울 리전
+  AWS_REGION: us-east-1             # 서울 리전
   ECR_REPOSITORY: token-ledger-sample-app # AWS ECR 창고 이름 (나중에 AWS에서 만들 이름)
 
 jobs:
