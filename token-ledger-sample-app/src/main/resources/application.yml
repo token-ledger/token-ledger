@@ -1,0 +1,11 @@
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus, health # 프로메테우스가 데이터를 긁어갈 수 있게 허용!
+  metrics:
+    tags:
+      application: token-ledger-sample-app

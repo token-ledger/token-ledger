@@ -6,3 +6,5 @@ include 'token-ledger-micrometer'
 include 'token-ledger-budget'
 include 'token-ledger-autoconfigure'
 include 'token-ledger-starter'
+include 'token-ledger-sample-app'
+

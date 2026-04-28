@@ -1,0 +1,42 @@
+name: Deploy to Amazon ECR
+
+on:
+  push:
+    branches:
+      - main # ⭐️ main 브랜치에 코드가 합쳐지면(Push) 자동으로 트럭이 출발합니다!
+
+env:
+  AWS_REGION: ap-northeast-2              # 서울 리전
+  ECR_REPOSITORY: token-ledger-sample-app # AWS ECR 창고 이름 (나중에 AWS에서 만들 이름)
+
+jobs:
+  deploy:
+    name: Build & Push to ECR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Checkout code (최신 코드 가져오기)
+        uses: actions/checkout@v4
+
+      - name: 2. Configure AWS credentials (AWS 출입증 인증)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 3. Login to Amazon ECR (창고 문 열기)
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: 4. Build, tag, and push image to Amazon ECR (밀키트 제작 및 업로드)
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }} # 코드의 고유번호를 유통기한표(태그)로 사용합니다
+        run: |
+          echo "도커 이미지를 빌드합니다..."
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          
+          echo "AWS ECR 창고로 이미지를 전송합니다..."
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG

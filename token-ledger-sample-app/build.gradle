@@ -1,0 +1,23 @@
+plugins {
+    id 'org.springframework.boot'
+    id 'io.spring.dependency-management'
+    id 'java'
+}
+
+group = 'io.springai.ledger'
+version = '0.0.1-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation project(':token-ledger-starter')
+
+    // 웹 서버 구동을 위한 필수품
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // 모니터링 (프로메테우스가 데이터를 긁어갈 수 있게 해줌)
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+}
