@@ -21,3 +21,13 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
 }
+
+// 스프링 부트 실행 파일(밀키트) 포장을 강제로 켭니다!
+bootJar {
+    enabled = true
+}
+
+// 일반 부품용 jar 포장은 필요 없으니 끕니다.
+jar {
+    enabled = false
+}
