@@ -31,7 +31,7 @@ Primary goal: users should eventually add one dependency, `token-ledger-starter`
 | --- | --- | --- |
 | `token-ledger-core` | Basic implementation complete | Domain records, pricing, calculator, registry, ledger manager |
 | `token-ledger-spring-ai` | Basic implementation complete | `UsageExtractor`, `LedgerAdvisor`, response usage recording |
-| `token-ledger-micrometer` | Basic implementation complete | Needs tag whitelist/high-cardinality protection |
+| `token-ledger-micrometer` | Basic implementation complete | Tag whitelist and metric metadata implemented; options object is next |
 | `token-ledger-budget` | Basic implementation complete | Needs richer policy/window/store support |
 | `token-ledger-autoconfigure` | Pending team work | Should own bean registration and property binding |
 | `token-ledger-starter` | Current focus | Should become final user entrypoint |
@@ -50,6 +50,14 @@ Starter tasks:
 - Prepare TODO tests that can be enabled after autoconfigure lands.
 
 Autoconfigure is assigned to another teammate. Do not implement it unless explicitly asked.
+
+Current Micrometer follow-up:
+
+- Introduce a small metrics options/properties object.
+- Keep default allowed tag keys as `tenant_id`.
+- Preserve the existing `MicroCostMetricsPublisher(MeterRegistry)` constructor.
+- Add tests for null/empty tags and multiple allowed tags.
+- Keep metric descriptions and base units stable.
 
 ## Starter Contract
 
@@ -141,7 +149,7 @@ The bean endpoint should avoid hard bean requirements until autoconfigure exists
 4. Autoconfigure implementation by teammate.
 5. Bean smoke tests enabled after autoconfigure lands.
 6. Gradle dependency cleanup so library modules are not overloaded with app dependencies.
-7. Micrometer tag whitelist and metric metadata.
+7. Micrometer options object for autoconfigure integration.
 8. Budget policy expansion.
 9. Streaming usage aggregation and fallback token estimation.
 
@@ -149,7 +157,7 @@ The bean endpoint should avoid hard bean requirements until autoconfigure exists
 
 - Root `build.gradle` currently applies Spring Boot plugin and actuator/prometheus dependencies to every subproject. This is heavy for library modules.
 - `core.internal` implementation classes are package-private. Autoconfigure cannot instantiate them directly unless a public factory/API is introduced.
-- Micrometer publisher currently forwards all event tags; this can cause high-cardinality metric explosion.
+- Micrometer publisher filters tags, but the configuration is still constructor-level and should be wrapped in an options object before autoconfigure integration.
 - Autoconfigure is currently not implemented, so starter cannot provide true zero-config behavior yet.
 
 ## Verification
@@ -181,6 +189,7 @@ curl http://localhost:8080/actuator/prometheus
 - Added starter-focused workstream guidance.
 - Clarified that `token-ledger-starter` is the current user-entrypoint task while autoconfigure is owned separately.
 - Added a README autoconfigure implementation guide covering bean registration, property binding, internal factory options, and test expectations.
+- Implemented Micrometer tag whitelist support and metric description/base unit metadata; documented the next options-object step.
 
 ### 2026-04-19
 
