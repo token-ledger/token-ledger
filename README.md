@@ -173,6 +173,211 @@ class TokenLedgerAutoConfigurationSmokeTest {
 
 autoconfigure가 아직 없는 동안에는 bean 등록 검증 테스트를 TODO로만 남기고 활성화하지 않습니다.
 
+## Autoconfigure 구현 가이드
+
+`token-ledger-autoconfigure`는 starter가 끌고 온 모듈들을 Spring Boot 애플리케이션에서 자동으로 조립하는 모듈입니다. 사용자는 `token-ledger-starter`만 추가하고 `application.yml`에 `token-ledger.*` 설정을 넣으면 기본 bean이 등록되어야 합니다.
+
+Autoconfigure의 목표:
+
+- 사용자가 직접 `LedgerManager`, `PricingRegistry`, `LedgerAdvisor` 등을 생성하지 않아도 됩니다.
+- 사용자가 직접 `ChatClient.Builder`에 advisor를 붙이지 않아도 됩니다.
+- 사용자가 설정한 pricing/budget/metrics 옵션이 bean 생성에 반영됩니다.
+- 사용자가 직접 bean을 등록한 경우에는 autoconfigure 기본 bean이 덮어쓰지 않습니다.
+
+### Autoconfigure 담당 범위
+
+- `TokenLedgerAutoConfiguration` 작성
+- `TokenLedgerProperties` 작성
+- pricing plan property binding
+- budget property binding
+- metrics/tag whitelist property binding
+- 기본 bean 조건부 등록
+- `AutoConfiguration.imports` 등록
+- `ApplicationContextRunner` 기반 테스트 작성
+
+Autoconfigure에서 하지 않는 일:
+
+- starter에 비즈니스 로직 추가
+- sample app 전용 bean 등록
+- 실제 provider API 호출 구현
+- 운영용 Redis/JDBC budget store 구현
+
+### 권장 파일 구조
+
+```text
+token-ledger-autoconfigure
+└── src
+    ├── main
+    │   ├── java
+    │   │   └── io/tokenledger/autoconfigure
+    │   │       ├── TokenLedgerAutoConfiguration.java
+    │   │       ├── TokenLedgerProperties.java
+    │   │       ├── PricingPlanProperties.java
+    │   │       └── LedgerChatClientCustomizer.java
+    │   └── resources
+    │       └── META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+    └── test
+        └── java
+            └── io/tokenledger/autoconfigure
+                ├── TokenLedgerAutoConfigurationTest.java
+                └── TokenLedgerPropertiesTest.java
+```
+
+### Bean 등록 원칙
+
+기본 bean은 모두 조건부로 등록합니다.
+
+- `@ConditionalOnMissingBean`: 사용자가 같은 타입의 bean을 등록하면 사용자 bean을 우선합니다.
+- `@ConditionalOnClass`: 관련 모듈이 classpath에 있을 때만 adapter bean을 등록합니다.
+- `@ConditionalOnProperty`: `token-ledger.*.enabled` 설정으로 기능별 on/off를 제어합니다.
+
+권장 기본 bean:
+
+| Bean | 조건 | 설명 |
+| --- | --- | --- |
+| `CostCalculator` | missing bean | core 비용 계산기 |
+| `PricingRegistry` | missing bean | 설정 기반 가격표 registry |
+| `LedgerManager` | missing bean | 비용 기록 manager |
+| `UsageExtractor` | Spring AI classpath + missing bean | Spring AI 응답 usage 추출 |
+| `LedgerAdvisor` | Spring AI classpath + missing bean | ChatClient advisor |
+| `MicroCostMetricsPublisher` | Micrometer classpath + metrics enabled | 비용/토큰 메트릭 발행 listener |
+| `BudgetStateStore` | budget enabled + missing bean | 기본 in-memory budget store |
+| `BudgetEvaluator` | budget enabled + missing bean | 기본 budget evaluator |
+| `ChatClientCustomizer` | Spring AI classpath + advisor bean | ChatClient에 LedgerAdvisor 연결 |
+
+### Core internal 생성 문제
+
+현재 `core.internal`의 기본 구현체는 package-private입니다. 이 상태에서는 autoconfigure 모듈이 `DefaultCostCalculator`, `DefaultLedgerManager`, `InMemoryPricingRegistry`를 직접 생성할 수 없습니다.
+
+해결 방향은 둘 중 하나로 정합니다.
+
+1. core에 public factory 추가
+
+```java
+public final class LedgerComponents {
+
+    public static CostCalculator defaultCostCalculator() {
+        return new DefaultCostCalculator();
+    }
+
+    public static PricingRegistry inMemoryPricingRegistry() {
+        return new InMemoryPricingRegistry();
+    }
+
+    public static LedgerManager defaultLedgerManager(
+            PricingRegistry pricingRegistry,
+            CostCalculator costCalculator,
+            List<LedgerListener> listeners
+    ) {
+        return new DefaultLedgerManager(pricingRegistry, costCalculator, listeners);
+    }
+}
+```
+
+2. 기본 구현체를 public으로 공개
+
+라이브러리 API 노출을 최소화하려면 1번 factory 방식이 더 낫습니다.
+
+### Property Binding 기준
+
+설정 prefix는 `token-ledger`로 고정합니다.
+
+```yaml
+token-ledger:
+  enabled: true
+  pricing:
+    plans:
+      - model-id: gpt-4o-mini
+        currency: USD
+        rates:
+          PROMPT: 0.00015
+          COMPLETION: 0.00060
+          REASONING: 0.00060
+          CACHED_PROMPT: 0.000075
+  metrics:
+    enabled: true
+    tag-whitelist:
+      - tenant_id
+      - model
+  budget:
+    enabled: false
+    monthly-limit: 10.00
+```
+
+권장 properties 모델:
+
+```java
+@ConfigurationProperties(prefix = "token-ledger")
+public class TokenLedgerProperties {
+    private boolean enabled = true;
+    private Pricing pricing = new Pricing();
+    private Metrics metrics = new Metrics();
+    private Budget budget = new Budget();
+}
+```
+
+`PricingPlanProperties`는 `modelId`, `currency`, `rates`를 받고 `PricingPlan`으로 변환하는 메서드를 갖습니다.
+
+### ChatClient 연결 기준
+
+autoconfigure는 `LedgerAdvisor`가 등록되어 있을 때 `ChatClientCustomizer`를 등록합니다. customizer는 모든 `ChatClient.Builder`에 advisor를 추가하는 역할만 가져야 합니다.
+
+개념 예시:
+
+```java
+@Bean
+@ConditionalOnBean(LedgerAdvisor.class)
+@ConditionalOnMissingBean
+ChatClientCustomizer ledgerChatClientCustomizer(LedgerAdvisor ledgerAdvisor) {
+    return builder -> builder.defaultAdvisors(ledgerAdvisor);
+}
+```
+
+Spring AI 버전에 따라 `ChatClientCustomizer` 패키지나 builder API가 달라질 수 있으므로 현재 적용 중인 Spring AI `1.1.4` 기준으로 컴파일 확인이 필요합니다.
+
+### Autoconfigure 테스트 기준
+
+`ApplicationContextRunner`로 기능별 조건을 검증합니다.
+
+필수 테스트:
+
+- 설정이 없어도 context가 뜹니다.
+- pricing 설정이 `PricingProvider` 또는 `PricingRegistry`에 반영됩니다.
+- 사용자 정의 bean이 있으면 autoconfigure bean이 덮어쓰지 않습니다.
+- Micrometer `MeterRegistry`가 있을 때만 metrics publisher가 등록됩니다.
+- budget disabled면 `BudgetEvaluator`가 등록되지 않습니다.
+- budget enabled면 `BudgetEvaluator`, `BudgetStateStore`가 등록됩니다.
+- Spring AI classpath가 있을 때 `LedgerAdvisor`, `ChatClientCustomizer`가 등록됩니다.
+
+예시:
+
+```java
+private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+        .withConfiguration(AutoConfigurations.of(TokenLedgerAutoConfiguration.class));
+
+@Test
+void shouldBindPricingPlans() {
+    contextRunner
+            .withPropertyValues(
+                    "token-ledger.pricing.plans[0].model-id=gpt-4o-mini",
+                    "token-ledger.pricing.plans[0].currency=USD",
+                    "token-ledger.pricing.plans[0].rates.PROMPT=0.00015",
+                    "token-ledger.pricing.plans[0].rates.COMPLETION=0.00060"
+            )
+            .run(context -> assertThat(context).hasSingleBean(PricingRegistry.class));
+}
+```
+
+### 완료 기준
+
+Autoconfigure 작업은 다음이 만족되면 완료로 봅니다.
+
+- `token-ledger-starter`만 의존한 sample app이 실행됩니다.
+- `token-ledger.*` 설정으로 pricing plan이 등록됩니다.
+- 주요 bean smoke endpoint에서 `ledgerManager`, `ledgerAdvisor`, `pricingRegistry`가 true로 확인됩니다.
+- `/actuator/prometheus`에 `ai.token.*` metric이 노출됩니다.
+- `./gradlew test`가 통과합니다.
+
 ## 해야 할 일
 
 ### 1. Starter 진입점 정리
