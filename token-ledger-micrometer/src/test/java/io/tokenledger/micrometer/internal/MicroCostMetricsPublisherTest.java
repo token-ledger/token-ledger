@@ -58,11 +58,25 @@ class MicroCostMetricsPublisherTest {
                 .summary().max()).isEqualTo(100.0);
 
         // Then: 비용 카운터 확인
-        assertThat(meterRegistry.find("ai.token.cost.total")
+        var costCounter = meterRegistry.find("ai.token.cost.total")
                 .tag("model", "gpt-4o")
                 .tag("tenant_id", "tenant-1")
                 .tag("currency", "USD")
-                .counter().count()).isEqualTo(0.5);
+                .counter();
+
+        assertThat(costCounter.count()).isEqualTo(0.5);
+        assertThat(costCounter.getId().getDescription()).isEqualTo("Total estimated AI token cost");
+        assertThat(costCounter.getId().getBaseUnit()).isEqualTo("currency");
+
+        var promptSummary = meterRegistry.find("ai.token.usage.distribution")
+                .tag("model", "gpt-4o")
+                .tag("tenant_id", "tenant-1")
+                .tag("token_type", "prompt")
+                .summary();
+
+        assertThat(promptSummary.getId().getDescription())
+                .isEqualTo("Distribution of AI token usage per recorded model call");
+        assertThat(promptSummary.getId().getBaseUnit()).isEqualTo("tokens");
     }
 
     @Test
