@@ -1,4 +1,4 @@
-package io.springai.ledger.sample;
+package io.tokenledger.sample;
 
 import java.util.Map;
 
