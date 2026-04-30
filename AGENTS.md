@@ -1,7 +1,7 @@
 # Token Ledger - Project Status & Guidelines
 
 ## 📌 핵심 원칙 (Core Mandates)
-- **작업 업데이트 필수:** 모든 기능 구현, 모듈 추가, 주요 변경 사항 발생 시 반드시 이 `GEMINI.md` 파일을 최신화해야 합니다.
+- **작업 업데이트 필수:** 모든 기능 구현, 모듈 추가, 주요 변경 사항 발생 시 반드시 이 `AGENTS.md` 파일을 최신화해야 합니다.
 - **인터페이스 우선:** 모듈 간 결합도를 낮추기 위해 핵심 인터페이스를 먼저 정의하고 구현합니다.
 - **관측 가능성 중심:** 모든 비용 데이터는 Micrometer를 통해 시각화 및 관측이 가능해야 합니다.
 - **금융급 정밀도:** 비용 계산 시 `BigDecimal`을 사용하여 소수점 정밀도(6자리 권장)를 보장합니다.
@@ -85,6 +85,12 @@ io.tokenledger.{module}
 ---
 
 ## 📝 주요 업데이트 이력 (Update History)
+
+### 📅 2026-04-30
+- **README 로드맵 정리**:
+    - 프로젝트 목표, 모듈별 현재 상태, 구현 완료 항목을 README에 정리.
+    - 다음 구현 우선순위를 `autoconfigure`, 빌드 의존성 정리, Micrometer 고카디널리티 방어, Budget 정책 확장, 스트리밍 대응, sample app 데모 확장 순으로 명확화.
+    - 현재 `autoconfigure` 모듈의 실제 구현 부재와 `core.internal` package-private 구현체 생성 문제를 TODO로 기록.
 
 ### 📅 2026-04-19
 - **Core 모듈 패키지 구조 최적화 및 캡슐화**:
