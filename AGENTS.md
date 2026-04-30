@@ -180,6 +180,7 @@ curl http://localhost:8080/actuator/prometheus
 - Added README roadmap for current project gaps.
 - Added starter-focused workstream guidance.
 - Clarified that `token-ledger-starter` is the current user-entrypoint task while autoconfigure is owned separately.
+- Added a README autoconfigure implementation guide covering bean registration, property binding, internal factory options, and test expectations.
 
 ### 2026-04-19
 
