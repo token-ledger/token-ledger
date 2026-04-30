@@ -9,6 +9,9 @@ env:
   AWS_REGION: us-east-1             # 서울 리전
   ECR_REPOSITORY: token-ledger-sample-app # AWS ECR 창고 이름 (나중에 AWS에서 만들 이름)
 
+  ECS_CLUSTER: monitoring-cluster    # 예: 모니터링을 위해 만든 클러스터 이름
+  ECS_SERVICE: token-ledger-test-app-task-service  # 예: 클러스터 안에서 돌아가고 있는 서비스 이름
+
 jobs:
   deploy:
     name: Build & Push to ECR
@@ -44,3 +47,13 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           # 최신판(latest) 버전 푸시
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      # 5. ECS 서비스에 강제 업데이트 명령 내리기
+      - name: Deploy to Amazon ECS (Force New Deployment)
+        run: |
+          echo "ECS 서비스 업데이트를 시작합니다..."
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE }} \
+            --force-new-deployment
+          echo "✅ ECS 배포 명령 전송 완료! (AWS에서 롤링 업데이트가 시작됩니다)"
