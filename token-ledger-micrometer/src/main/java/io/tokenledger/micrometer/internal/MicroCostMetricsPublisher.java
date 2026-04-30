@@ -6,7 +6,8 @@ import io.micrometer.core.instrument.Tags;
 import io.tokenledger.core.domain.CostRecordedEvent;
 import io.tokenledger.core.LedgerListener;
 
-import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Micrometer 기반의 비용 메트릭 리스너.
@@ -16,19 +17,21 @@ import java.util.stream.Collectors;
 public class MicroCostMetricsPublisher implements LedgerListener {
 
     private final MeterRegistry meterRegistry;
+    private final Set<String> allowedTagKeys;
 
     public MicroCostMetricsPublisher(MeterRegistry meterRegistry) {
+        this(meterRegistry, Set.of("tenant_id"));
+    }
+
+    public MicroCostMetricsPublisher(MeterRegistry meterRegistry, Set<String> allowedTagKeys) {
         this.meterRegistry = meterRegistry;
+        this.allowedTagKeys = Set.copyOf(allowedTagKeys);
     }
 
     @Override
     public void onRecord(CostRecordedEvent event) {
-        Tags commonTags = Tags.of("model", event.modelId());
-        if (event.tags() != null) {
-            commonTags = commonTags.and(event.tags().entrySet().stream()
-                    .map(e -> Tag.of(e.getKey(), e.getValue()))
-                    .collect(Collectors.toList()));
-        }
+        Tags commonTags = Tags.of("model", event.modelId())
+                .and(allowedTags(event.tags()));
 
         final Tags finalTags = commonTags;
 
@@ -44,5 +47,15 @@ public class MicroCostMetricsPublisher implements LedgerListener {
         meterRegistry.counter("ai.token.cost.total", 
                 finalTags.and("currency", event.cost().currency().getCurrencyCode()))
                 .increment(event.cost().value().doubleValue());
+    }
+
+    private Tags allowedTags(Map<String, String> tags) {
+        if (tags == null || tags.isEmpty()) {
+            return Tags.empty();
+        }
+        return Tags.of(tags.entrySet().stream()
+                .filter(entry -> allowedTagKeys.contains(entry.getKey()))
+                .map(entry -> Tag.of(entry.getKey(), entry.getValue()))
+                .toList());
     }
 }
