@@ -1,114 +1,196 @@
-# Token Ledger - Project Status & Guidelines
+# Token Ledger Agent Guide
 
-## 📌 핵심 원칙 (Core Mandates)
-- **작업 업데이트 필수:** 모든 기능 구현, 모듈 추가, 주요 변경 사항 발생 시 반드시 이 `AGENTS.md` 파일을 최신화해야 합니다.
-- **인터페이스 우선:** 모듈 간 결합도를 낮추기 위해 핵심 인터페이스를 먼저 정의하고 구현합니다.
-- **관측 가능성 중심:** 모든 비용 데이터는 Micrometer를 통해 시각화 및 관측이 가능해야 합니다.
-- **금융급 정밀도:** 비용 계산 시 `BigDecimal`을 사용하여 소수점 정밀도(6자리 권장)를 보장합니다.
+## Project Summary
 
-## 🚀 프로젝트 개요 (Overview)
-Spring AI 애플리케이션에서 AI 호출 비용을 실시간으로 측정, 시각화하고 예산 정책에 따라 호출을 제어하는 엔터프라이즈급 경량 라이브러리입니다.
+Token Ledger is a multi-module Java/Spring library for tracking Spring AI token usage, calculating model costs, publishing Micrometer metrics, and enforcing budget policy.
 
----
+Primary goal: users should eventually add one dependency, `token-ledger-starter`, configure `token-ledger.*`, and get automatic cost tracking for Spring AI calls.
 
-## 🏛 라이브러리 아키텍처 및 설계 가이드
+## Agent Rules
 
-### 1. 4계층 아키텍처 (Architecture Layers)
-- **API & Domain (`core`)**: 핵심 모델 및 인터페이스 (의존성 제로).
-- **Implementation (`core.internal`)**: 엔진의 기본 로직 구현체 (Default Impl).
-- **Adapter (`spring-ai`, `micrometer`, `budget`)**: 외부 프레임워크와 Core 도메인을 연결하는 Bridge.
-- **Infrastructure (`autoconfigure`, `starter`)**: 자동 빈 등록 및 Plug-and-Play 지원.
+- Update this `AGENTS.md` whenever a meaningful feature, module, roadmap, or architectural decision changes.
+- Prefer interface-first design across module boundaries.
+- Keep core domain code precise and dependency-light.
+- Use `BigDecimal` for monetary calculations.
+- Avoid high-cardinality Micrometer tags by default.
+- Do not place business logic in `token-ledger-starter`; keep starter as a thin user entrypoint.
+- If implementation classes stay under `internal`, expose them to other modules through deliberate public factories or public configuration APIs.
 
-### 2. 모듈 내부 패키지 전략 (Package Strategy)
-라이브러리 사용자의 편의성과 캡슐화를 위해 다음과 같은 구조를 권장합니다.
+## Architecture
 
-```text
-io.tokenledger.{module}
-├── {Name}.java (Public API: Interface)
-├── {Name}.java (Domain Model: Record)
-├── exception
-│   └── {Name}Exception.java (Custom Exceptions)
-└── internal
-    └── {Name}Impl.java (Private Implementation)
+| Layer | Modules | Responsibility |
+| --- | --- | --- |
+| API & Domain | `token-ledger-core` | Core models, pricing, cost calculation interfaces, ledger interfaces |
+| Adapter | `token-ledger-spring-ai`, `token-ledger-micrometer`, `token-ledger-budget` | Integrate with Spring AI, Micrometer, and budget policy |
+| Infrastructure | `token-ledger-autoconfigure`, `token-ledger-starter` | Spring Boot auto-configuration and final user dependency |
+| Demo | `token-ledger-sample-app` | Local verification app for starter/autoconfigure integration |
+
+## Module Status
+
+| Module | Status | Notes |
+| --- | --- | --- |
+| `token-ledger-core` | Basic implementation complete | Domain records, pricing, calculator, registry, ledger manager |
+| `token-ledger-spring-ai` | Basic implementation complete | `UsageExtractor`, `LedgerAdvisor`, response usage recording |
+| `token-ledger-micrometer` | Basic implementation complete | Needs tag whitelist/high-cardinality protection |
+| `token-ledger-budget` | Basic implementation complete | Needs richer policy/window/store support |
+| `token-ledger-autoconfigure` | Pending team work | Should own bean registration and property binding |
+| `token-ledger-starter` | Current focus | Should become final user entrypoint |
+| `token-ledger-sample-app` | Current focus | Should validate starter integration |
+
+## Current Work Focus
+
+The current local workstream is starter readiness, not autoconfigure implementation.
+
+Starter tasks:
+
+- Clarify `token-ledger-starter` dependency intent.
+- Keep sample app dependent on `project(':token-ledger-starter')`.
+- Add README instructions for starter usage.
+- Prepare sample app smoke checks that work before autoconfigure exists.
+- Prepare TODO tests that can be enabled after autoconfigure lands.
+
+Autoconfigure is assigned to another teammate. Do not implement it unless explicitly asked.
+
+## Starter Contract
+
+Expected final user setup:
+
+```gradle
+dependencies {
+    implementation 'io.springai.ledger:token-ledger-starter'
+}
 ```
 
-- **최상위 패키지**: 사용자가 직접 사용할 `Interface`와 `Record`를 위치시켜 `import` 경로를 최적화합니다.
-- **`internal` 패키지**: 실제 구현 클래스를 둡니다. 가능하면 `package-private`으로 선언하여 외부 노출을 엄격히 차단합니다.
-- **`domain` 패키지 (선택)**: 데이터 모델이 아주 많아질 경우 최상위 대신 별도 분리합니다.
+In this repository, sample app verification uses:
 
----
+```gradle
+dependencies {
+    implementation project(':token-ledger-starter')
+}
+```
 
-## 🛠 마스터 로드맵 및 진행 상황
+Starter should include the modules users need at runtime, especially `token-ledger-autoconfigure`. The starter should not create beans itself.
 
-### 진행 단계 (Roadmap)
-- **Phase 1 (MVP):** 핵심 측정 및 Micrometer 시각화 연동. (진행 중)
-- **Phase 1.5:** 스트리밍 응답 추적 및 토큰 추산(Fallback) 로직 강화. (완료 - Spring AI 1.1.4 대응)
-- **Phase 2:** 멀티 테넌시 식별 및 고카디널리티 방어.
-- **Phase 3:** 예산 통제(Budget Control) 및 정책 엔진 도입.
+## Autoconfigure Contract
 
-### 현재 상태 (Progress)
-- [x] **프로젝트 초기화:** Java 25, Spring Boot 4.0.5 기반 멀티 모듈 구조 확립.
-- [x] **핵심 인터페이스 및 아키텍처 설계:** 4계층 레이어 및 내부 패키지 전략 수립.
-- [x] **Core 도메인 고도화:** `TokenType`(Reasoning, Cached 등) 도입 및 정밀 비용 계산 로직 구현 완료.
-- [x] **Spring AI 연동:** Spring AI 1.1.4 정식 버전 기반 `LedgerAdvisor` 및 `UsageExtractor` 구현 완료.
-- [ ] **자동 설정 구현 (진행 중):** `autoconfigure` 모듈을 통한 Zero-config 빈 등록 처리.
+The autoconfigure module should eventually provide:
 
----
+- `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
+- `TokenLedgerAutoConfiguration`
+- `TokenLedgerProperties`
+- Pricing property binding
+- Budget property binding
+- Metrics/tag whitelist property binding
+- Conditional beans for:
+  - `CostCalculator`
+  - `PricingRegistry`
+  - `LedgerManager`
+  - `UsageExtractor`
+  - `LedgerAdvisor`
+  - `BudgetEvaluator`
+  - `BudgetStateStore`
+  - `MicroCostMetricsPublisher`
+  - `ChatClientCustomizer`
 
-## 📂 모듈별 역할 및 인터페이스 명세
+Shared configuration prefix:
 
-### 모듈 역할 상세
-| 모듈명 | 역할 | 상태 |
-| :--- | :--- | :--- |
-| `token-ledger-core` | 비용 계산 로직, Usage 추상화, 핵심 인터페이스 | 구현 완료 |
-| `token-ledger-spring-ai` | ChatModel 어드바이저, Usage 추출 및 변환 | 구현 완료 |
-| `token-ledger-micrometer` | MeterRegistry 연동, 비용 메트릭 발행 | 뼈대 생성 |
-| `token-ledger-budget` | 예산 통제, 정책 엔진, 한도 초과 처리 (ERP 협업) | 뼈대 생성 |
-| `token-ledger-autoconfigure` | @AutoConfiguration, 프로퍼티 바인딩 | 진행 중 |
-| `token-ledger-starter` | 사용자용 통합 의존성 진입점 | 뼈대 생성 |
+```yaml
+token-ledger:
+  enabled: true
+```
 
-### 핵심 인터페이스 스펙
-- **`core`**: `PricingRegistry`, `CostCalculator`, `LedgerManager`.
-- **`spring-ai`**: `UsageExtractor`, `LedgerAdvisor`.
-- **`budget`**: `BudgetEvaluator` (ERP 담당 팀원 구현 포인트).
-- **`micrometer`**: `CostMetricsPublisher`.
+## Recommended Configuration Shape
 
----
+```yaml
+token-ledger:
+  enabled: true
+  pricing:
+    plans:
+      - model-id: gpt-4o-mini
+        currency: USD
+        rates:
+          PROMPT: 0.00015
+          COMPLETION: 0.00060
+  metrics:
+    enabled: true
+    tag-whitelist:
+      - tenant_id
+      - model
+  budget:
+    enabled: false
+    monthly-limit: 10.00
+```
 
-## 🧠 주요 기술적 챌린지 (Technical Challenges)
-1. **Spring AI 1.1.x 모듈 분리 대응:** `spring-ai-core` 삭제에 따른 `model`, `client-chat` 모듈 정밀 타겟팅.
-2. **추론 토큰(Reasoning) 정산:** OpenAI o1 등 최신 모델의 메타데이터 내 특수 토큰 추출 로직 확보.
-3. **스트리밍 일관성:** `BaseAdvisor`를 활용한 동기/비동기 호출의 일관된 사용량 캡처.
-4. **고카디널리티 제어:** 가변 태그(user_id 등)가 Prometheus 메모리에 주는 부하 방어.
-5. **Context 전파:** MVC/WebFlux 환경에서 테넌트 식별자 유실 방지.
+## Sample App Direction
 
----
+`token-ledger-sample-app` should be a starter integration verification app.
 
-## 📝 주요 업데이트 이력 (Update History)
+Near-term endpoints:
 
-### 📅 2026-04-30
-- **README 로드맵 정리**:
-    - 프로젝트 목표, 모듈별 현재 상태, 구현 완료 항목을 README에 정리.
-    - 다음 구현 우선순위를 `autoconfigure`, 빌드 의존성 정리, Micrometer 고카디널리티 방어, Budget 정책 확장, 스트리밍 대응, sample app 데모 확장 순으로 명확화.
-    - 현재 `autoconfigure` 모듈의 실제 구현 부재와 `core.internal` package-private 구현체 생성 문제를 TODO로 기록.
+- `GET /test/token-ledger/smoke`: app is running and starter is on classpath.
+- `GET /test/token-ledger/beans`: reports whether expected autoconfigure beans exist.
+- `GET /actuator/prometheus`: validates actuator/prometheus exposure.
 
-### 📅 2026-04-19
-- **Core 모듈 패키지 구조 최적화 및 캡슐화**:
-    - **도메인 모델 분리**: `Cost`, `TokenUsage`, `PricingPlan` 등 데이터 모델을 `io.tokenledger.core.domain` 패키지로 이동하여 인터페이스와 데이터 모델의 역할 분리.
-    - **가시성 제어 강화**: `internal` 패키지 내의 기본 구현체(`DefaultLedgerManager`, `DefaultCostCalculator`, `InMemoryPricingRegistry`)를 `package-private`으로 변경하여 외부 노출 차단 및 아키텍처 정합성 확보.
-    - **전체 모듈 영향도 전파**: `spring-ai`, `micrometer`, `budget` 등 모든 하위 모듈의 참조 경로를 새로운 도메인 패키지로 업데이트 완료.
-    - **안정성 검증**: 모든 모듈의 유닛 테스트를 수행하여 리팩토링 후에도 기능적 동일성 유지 확인.
+The bean endpoint should avoid hard bean requirements until autoconfigure exists. Use `ApplicationContext#containsBean(...)` or type-safe optional lookups so the app still starts.
 
-### 📅 2026-04-14
-- **Core 모듈 고도화**: 
-    - `TokenType` 열거형 도입으로 토큰 유형(PROMPT, COMPLETION, REASONING, CACHED) 세분화.
-    - `PricingPlan`에 토큰 타입별 차등 단가 및 Fallback 로직 반영.
-    - `BigDecimal`을 이용한 10자리 정밀도 연산 및 6자리 반올림 정책 확립.
-- **Spring AI 정식 버전(1.1.4) 안착**:
-    - **이슈 해결**: `spring-ai-core` 모듈 삭제 및 `spring-ai-model`, `spring-ai-client-chat` 분리 대응.
-    - **Advisor 구현**: 최신 `BaseAdvisor` 기반 `LedgerAdvisor` 인터페이스 정의.
-    - **데이터 추출**: `ChatClientResponse`의 Java Record 규격 및 `ChatResponseMetadata` 연동 완료.
-    - **테스트**: `DefaultUsageExtractor` 및 `DefaultLedgerAdvisor` 유닛 테스트 통과 (100%).
-- **인프라 설정**: 
-    - `spring-ai-bom:1.1.4` 적용 및 리포지토리 우선순위 조정.
-    - `token-ledger-autoconfigure` 모듈 `build.gradle` 세팅 완료.
+## Roadmap
+
+1. Starter entrypoint cleanup.
+2. Sample app starter smoke verification.
+3. Autoconfigure contract alignment.
+4. Autoconfigure implementation by teammate.
+5. Bean smoke tests enabled after autoconfigure lands.
+6. Gradle dependency cleanup so library modules are not overloaded with app dependencies.
+7. Micrometer tag whitelist and metric metadata.
+8. Budget policy expansion.
+9. Streaming usage aggregation and fallback token estimation.
+
+## Known Risks
+
+- Root `build.gradle` currently applies Spring Boot plugin and actuator/prometheus dependencies to every subproject. This is heavy for library modules.
+- `core.internal` implementation classes are package-private. Autoconfigure cannot instantiate them directly unless a public factory/API is introduced.
+- Micrometer publisher currently forwards all event tags; this can cause high-cardinality metric explosion.
+- Autoconfigure is currently not implemented, so starter cannot provide true zero-config behavior yet.
+
+## Verification
+
+Run all tests:
+
+```bash
+./gradlew test
+```
+
+Run sample app after implementation work:
+
+```bash
+./gradlew :token-ledger-sample-app:bootRun
+```
+
+Check Prometheus metrics:
+
+```bash
+curl http://localhost:8080/actuator/prometheus
+```
+
+## Update History
+
+### 2026-04-30
+
+- Renamed project guidance from `GEMINI.md` to `AGENTS.md`.
+- Added README roadmap for current project gaps.
+- Added starter-focused workstream guidance.
+- Clarified that `token-ledger-starter` is the current user-entrypoint task while autoconfigure is owned separately.
+
+### 2026-04-19
+
+- Moved core domain records into `io.tokenledger.core.domain`.
+- Tightened visibility of core internal default implementations.
+- Updated dependent modules to use the new domain package structure.
+- Verified tests after the package refactor.
+
+### 2026-04-14
+
+- Added token type support including prompt, completion, reasoning, and cached tokens.
+- Added token-type-specific pricing fallback logic.
+- Updated Spring AI integration for Spring AI 1.1.4 module split.
+- Added usage extraction and advisor tests.
