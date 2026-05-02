@@ -1,9 +1,12 @@
 package io.tokenledger.autoconfigure;
 
 import io.tokenledger.core.CostCalculator;
+import io.tokenledger.core.LedgerListener;
 import io.tokenledger.core.LedgerManager;
 import io.tokenledger.core.PricingProvider;
 import io.tokenledger.core.PricingRegistry;
+import io.tokenledger.core.domain.PricingPlan;
+import io.tokenledger.core.domain.TokenType;
 import io.tokenledger.springai.LedgerAdvisor;
 import io.tokenledger.springai.UsageExtractor;
 import org.assertj.core.api.SoftAssertions;
@@ -17,6 +20,8 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import java.util.stream.Stream;
 
+import static io.tokenledger.core.domain.TokenType.COMPLETION;
+import static io.tokenledger.core.domain.TokenType.PROMPT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
@@ -75,19 +80,34 @@ class TokenLedgerAutoConfigurationTest {
                     assertThat(context).hasSingleBean(PricingProvider.class);
 
                     var env = context.getEnvironment();
+                    var plans = context.getBean(PricingProvider.class)
+                                       .getAllPlans();
 
                     SoftAssertions.assertSoftly(softly -> {
                         softly.assertThat(env.getProperty(PROP_MODEL_ID))
                               .isEqualTo(modelId);
-
                         softly.assertThat(env.getProperty(PROP_PROMPT))
                               .isEqualTo(promptRate);
-
                         softly.assertThat(env.getProperty(PROP_COMPLETION))
                               .isEqualTo(completionRate);
-
                         softly.assertThat(env.getProperty(PROP_CURRENCY))
                               .isEqualTo(currency);
+
+                        softly.assertThat(plans)
+                              .hasSize(1);
+
+                        PricingPlan plan = plans.iterator()
+                                                .next();
+
+                        softly.assertThat(plan.modelId())
+                              .isEqualTo(modelId);
+                        softly.assertThat(plan.currency()
+                                              .getCurrencyCode())
+                              .isEqualTo(currency);
+                        softly.assertThat(plan.getRate(PROMPT))
+                              .isEqualByComparingTo(promptRate);
+                        softly.assertThat(plan.getRate(COMPLETION))
+                              .isEqualByComparingTo(completionRate);
                     });
                 });
     }
