@@ -12,7 +12,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * 기본 LedgerManager 구현체.
  * 가격 저장소와 계산기를 조율하여 비용을 기록하고, 등록된 리스너들에게 이벤트를 전파합니다.
  */
-class DefaultLedgerManager implements LedgerManager {
+public class DefaultLedgerManager implements LedgerManager {
     private final PricingRegistry pricingRegistry;
     private final CostCalculator costCalculator;
     private final List<LedgerListener> listeners = new CopyOnWriteArrayList<>();
