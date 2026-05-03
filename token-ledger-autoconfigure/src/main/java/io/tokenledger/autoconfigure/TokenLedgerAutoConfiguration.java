@@ -27,7 +27,11 @@ import org.springframework.context.annotation.Bean;
 /**
  * Token Ledger 라이브러리의 자동 설정을 담당하는 클래스.
  */
-@AutoConfiguration
+@AutoConfiguration(afterName = {
+        "org.springframework.boot.micrometer.metrics.autoconfigure.MetricsAutoConfiguration",
+        "org.springframework.boot.micrometer.metrics.autoconfigure.CompositeMeterRegistryAutoConfiguration",
+        "org.springframework.boot.micrometer.metrics.autoconfigure.export.prometheus.PrometheusMetricsExportAutoConfiguration"
+})
 @ConditionalOnProperty(prefix = "token-ledger", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(TokenLedgerProperties.class)
 public class TokenLedgerAutoConfiguration {

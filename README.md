@@ -101,8 +101,21 @@ Expected shape:
 {
   "ledgerManager": true,
   "ledgerAdvisor": true,
-  "pricingRegistry": true
+  "pricingRegistry": true,
+  "microCostMetricsPublisher": true
 }
+```
+
+Record a deterministic ledger event:
+
+```bash
+curl http://localhost:8080/test/token-ledger/record
+```
+
+When budget is enabled, check budget behavior:
+
+```bash
+curl http://localhost:8080/test/token-ledger/budget
 ```
 
 Check Prometheus exposure:
@@ -119,11 +132,10 @@ The starter and autoconfigure path is implemented at a basic level:
 - `token-ledger-autoconfigure` registers the core, Spring AI, Micrometer, and Budget beans conditionally.
 - `token-ledger.pricing.*` is bound into pricing plans and connected to `PricingRegistry`.
 - Budget beans are connected to `LedgerAdvisor` when budget is enabled.
-- The sample app confirms starter classpath, bean registration, and Prometheus actuator exposure.
+- The sample app confirms starter classpath, bean registration, direct ledger recording, budget behavior, token-ledger metrics, and Prometheus actuator exposure.
 
 Remaining MVP work:
 
-- Add sample app E2E endpoints that record ledger events and verify `ai.token.*` metrics.
 - Verify the Spring AI `ChatClient` advisor path end to end.
 - Add Maven publishing and validate a separate consumer app that depends on the published starter artifact.
 
