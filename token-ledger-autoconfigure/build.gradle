@@ -1,11 +1,22 @@
 dependencies {
     api project(':token-ledger-core')
     compileOnly project(':token-ledger-spring-ai')
+    compileOnly project(':token-ledger-micrometer')
+    compileOnly project(':token-ledger-budget')
+
+    compileOnly 'org.springframework.ai:spring-ai-model'
+    compileOnly 'org.springframework.ai:spring-ai-client-chat'
+    compileOnly 'io.micrometer:micrometer-core'
 
     implementation 'org.springframework.boot:spring-boot-autoconfigure'
-    implementation 'jakarta.annotation:jakarta.annotation-api'
     
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation project(':token-ledger-spring-ai')
+    testImplementation project(':token-ledger-micrometer')
+    testImplementation project(':token-ledger-budget')
+    testImplementation 'org.springframework.ai:spring-ai-model'
+    testImplementation 'org.springframework.ai:spring-ai-client-chat'
+    testImplementation 'io.micrometer:micrometer-core'
 }
