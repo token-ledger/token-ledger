@@ -1,23 +1,26 @@
 package io.tokenledger.autoconfigure;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.tokenledger.budget.BudgetEvaluator;
+import io.tokenledger.budget.BudgetStateStore;
+import io.tokenledger.budget.internal.LedgerBudgetComponents;
 import io.tokenledger.core.CostCalculator;
 import io.tokenledger.core.LedgerListener;
 import io.tokenledger.core.LedgerManager;
 import io.tokenledger.core.PricingProvider;
 import io.tokenledger.core.PricingRegistry;
-import io.tokenledger.core.internal.DefaultCostCalculator;
-import io.tokenledger.core.internal.DefaultLedgerManager;
-import io.tokenledger.core.internal.InMemoryPricingRegistry;
+import io.tokenledger.core.internal.LedgerComponents;
+import io.tokenledger.micrometer.internal.LedgerMicrometerComponents;
 import io.tokenledger.springai.LedgerAdvisor;
 import io.tokenledger.springai.UsageExtractor;
-import io.tokenledger.springai.internal.DefaultLedgerAdvisor;
-import io.tokenledger.springai.internal.DefaultUsageExtractor;
+import io.tokenledger.springai.internal.LedgerSpringAiComponents;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 
@@ -25,7 +28,7 @@ import org.springframework.context.annotation.Bean;
  * Token Ledger 라이브러리의 자동 설정을 담당하는 클래스.
  */
 @AutoConfiguration
-@ConditionalOnClass(LedgerAdvisor.class)
+@ConditionalOnProperty(prefix = "token-ledger", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(TokenLedgerProperties.class)
 public class TokenLedgerAutoConfiguration {
 
@@ -45,7 +48,7 @@ public class TokenLedgerAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public PricingRegistry pricingRegistry(ObjectProvider<PricingProvider> pricingProviders) {
-        return new InMemoryPricingRegistry(pricingProviders.orderedStream().toList());
+        return LedgerComponents.inMemoryPricingRegistry();
     }
 
     /**
@@ -54,7 +57,7 @@ public class TokenLedgerAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public CostCalculator costCalculator() {
-        return new DefaultCostCalculator();
+        return LedgerComponents.defaultCostCalculator();
     }
 
     /**
@@ -65,7 +68,12 @@ public class TokenLedgerAutoConfiguration {
     public LedgerManager ledgerManager(PricingRegistry pricingRegistry,
                                        CostCalculator costCalculator,
                                        ObjectProvider<LedgerListener> ledgerListeners) {
-        return new DefaultLedgerManager(pricingRegistry, costCalculator, ledgerListeners.orderedStream().toList());
+        return LedgerComponents.defaultLedgerManager(
+                pricingRegistry,
+                costCalculator,
+                ledgerListeners.orderedStream()
+                               .toList()
+        );
     }
 
     /**
@@ -73,9 +81,9 @@ public class TokenLedgerAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnClass(ChatClient.class)
+    @ConditionalOnClass({ChatClient.class, LedgerSpringAiComponents.class})
     public UsageExtractor usageExtractor() {
-        return new DefaultUsageExtractor();
+        return LedgerSpringAiComponents.defaultUsageExtractor();
     }
 
     /**
@@ -83,9 +91,9 @@ public class TokenLedgerAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnClass(ChatClient.class)
+    @ConditionalOnClass({ChatClient.class, LedgerSpringAiComponents.class})
     public LedgerAdvisor ledgerAdvisor(LedgerManager ledgerManager, UsageExtractor usageExtractor) {
-        return new DefaultLedgerAdvisor(ledgerManager, usageExtractor);
+        return LedgerSpringAiComponents.defaultLedgerAdvisor(ledgerManager, usageExtractor);
     }
 
     /**
@@ -96,5 +104,40 @@ public class TokenLedgerAutoConfiguration {
     @ConditionalOnClass(ChatClient.class)
     public LedgerChatClientCustomizer ledgerChatClientCustomizer(LedgerAdvisor ledgerAdvisor) {
         return new LedgerChatClientCustomizer(ledgerAdvisor);
+    }
+
+    /**
+     * Micrometer 메트릭 발행을 위한 리스너를 등록합니다.
+     */
+    @Bean
+    @ConditionalOnClass({MeterRegistry.class, LedgerMicrometerComponents.class})
+    @ConditionalOnBean(MeterRegistry.class)
+    @ConditionalOnProperty(prefix = "token-ledger.metrics", name = "enabled", havingValue = "true", matchIfMissing = true)
+    public LedgerListener microCostMetricsPublisher(MeterRegistry meterRegistry, TokenLedgerProperties properties) {
+        return LedgerMicrometerComponents.microCostMetricsPublisher(meterRegistry, properties.getMetrics()
+                                                                                             .getTagWhitelist());
+    }
+
+    /**
+     * 예산 관리 모듈이 있을 경우 기본 예산 저장소를 등록합니다.
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnClass(LedgerBudgetComponents.class)
+    @ConditionalOnProperty(prefix = "token-ledger.budget", name = "enabled", havingValue = "true")
+    public BudgetStateStore budgetStateStore() {
+        return LedgerBudgetComponents.inMemoryBudgetStateStore();
+    }
+
+    /**
+     * 예산 관리 모듈이 있을 경우 예산 평가기를 등록합니다.
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnClass(LedgerBudgetComponents.class)
+    @ConditionalOnProperty(prefix = "token-ledger.budget", name = "enabled", havingValue = "true")
+    public BudgetEvaluator budgetEvaluator(BudgetStateStore budgetStateStore, TokenLedgerProperties properties) {
+        return LedgerBudgetComponents.defaultBudgetEvaluator(budgetStateStore, properties.getBudget()
+                                                                                         .getMonthlyLimit());
     }
 }

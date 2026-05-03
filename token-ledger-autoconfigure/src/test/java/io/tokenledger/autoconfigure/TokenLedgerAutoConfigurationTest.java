@@ -1,12 +1,14 @@
 package io.tokenledger.autoconfigure;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.tokenledger.budget.BudgetEvaluator;
+import io.tokenledger.budget.BudgetStateStore;
 import io.tokenledger.core.CostCalculator;
-import io.tokenledger.core.LedgerListener;
 import io.tokenledger.core.LedgerManager;
 import io.tokenledger.core.PricingProvider;
 import io.tokenledger.core.PricingRegistry;
 import io.tokenledger.core.domain.PricingPlan;
-import io.tokenledger.core.domain.TokenType;
 import io.tokenledger.springai.LedgerAdvisor;
 import io.tokenledger.springai.UsageExtractor;
 import org.assertj.core.api.SoftAssertions;
@@ -17,6 +19,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 import java.util.stream.Stream;
 
@@ -37,16 +41,20 @@ class TokenLedgerAutoConfigurationTest {
             .withConfiguration(AutoConfigurations.of(TokenLedgerAutoConfiguration.class));
 
     @Test
-    @DisplayName("모든 핵심 빈들이 자동 등록되어야 한다")
-    void shouldRegisterAllCoreBeans() {
+    @DisplayName("기본 설정에서 Core 및 Spring AI 빈은 등록되고, Budget 빈은 등록되지 않아야 한다")
+    void shouldRegisterDefaultBeans() {
         this.contextRunner.run(context -> {
             assertThat(context).hasSingleBean(PricingProvider.class);
             assertThat(context).hasSingleBean(PricingRegistry.class);
             assertThat(context).hasSingleBean(CostCalculator.class);
             assertThat(context).hasSingleBean(LedgerManager.class);
+            
             assertThat(context).hasSingleBean(UsageExtractor.class);
             assertThat(context).hasSingleBean(LedgerAdvisor.class);
             assertThat(context).hasSingleBean(LedgerChatClientCustomizer.class);
+            
+            assertThat(context).doesNotHaveBean(BudgetStateStore.class);
+            assertThat(context).doesNotHaveBean(BudgetEvaluator.class);
         });
     }
 
@@ -112,6 +120,61 @@ class TokenLedgerAutoConfigurationTest {
                 });
     }
 
+    @Test
+    @DisplayName("token-ledger.budget.enabled=true 일 때 Budget 관련 빈이 등록되어야 한다")
+    void shouldRegisterBudgetBeansWhenEnabled() {
+        this.contextRunner
+                .withPropertyValues("token-ledger.budget.enabled=true")
+                .run(context -> {
+                    assertThat(context).hasSingleBean(BudgetStateStore.class);
+                    assertThat(context).hasSingleBean(BudgetEvaluator.class);
+                });
+    }
+
+    @Test
+    @DisplayName("token-ledger.budget.enabled=false 일 때 Budget 관련 빈이 등록되지 않아야 한다")
+    void shouldNotRegisterBudgetBeansWhenDisabled() {
+        this.contextRunner
+                .withPropertyValues("token-ledger.budget.enabled=false")
+                .run(context -> {
+                    assertThat(context).doesNotHaveBean(BudgetStateStore.class);
+                    assertThat(context).doesNotHaveBean(BudgetEvaluator.class);
+                });
+    }
+
+    @Test
+    @DisplayName("MeterRegistry가 존재할 때 Micrometer 관련 빈이 등록되어야 한다")
+    void shouldRegisterMicrometerBeanWhenMeterRegistryExists() {
+        this.contextRunner
+                .withUserConfiguration(MeterRegistryConfiguration.class)
+                .run(context -> {
+                    assertThat(context).hasBean("microCostMetricsPublisher");
+                });
+    }
+
+    @Test
+    @DisplayName("token-ledger.metrics.enabled=false 일 때 Micrometer 관련 빈이 등록되지 않아야 한다")
+    void shouldNotRegisterMicrometerBeanWhenMetricsDisabled() {
+        this.contextRunner
+                .withUserConfiguration(MeterRegistryConfiguration.class)
+                .withPropertyValues("token-ledger.metrics.enabled=false")
+                .run(context -> {
+                    assertThat(context).doesNotHaveBean("microCostMetricsPublisher");
+                });
+    }
+
+    @Test
+    @DisplayName("사용자 정의 빈이 있으면 자동 설정 빈이 덮어쓰지 않아야 한다")
+    void shouldNotOverrideUserDefinedBeans() {
+        this.contextRunner
+                .withUserConfiguration(UserCustomConfiguration.class)
+                .run(context -> {
+                    assertThat(context).hasSingleBean(PricingRegistry.class);
+                    assertThat(context.getBean(PricingRegistry.class))
+                            .isInstanceOf(UserCustomPricingRegistry.class);
+                });
+    }
+
     private static Stream<Arguments> providePricingConfigs() {
         return Stream.of(
                 argumentSet(
@@ -136,5 +199,26 @@ class TokenLedgerAutoConfigurationTest {
                 PROP_COMPLETION + "=" + completionRate,
                 PROP_CURRENCY + "=" + currency
         };
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    static class UserCustomConfiguration {
+        @Bean
+        public PricingRegistry pricingRegistry() {
+            return new UserCustomPricingRegistry();
+        }
+    }
+
+    static class UserCustomPricingRegistry implements PricingRegistry {
+        @Override public void registerPlan(PricingPlan plan) {}
+        @Override public java.util.Optional<PricingPlan> getPlan(String modelId) { return java.util.Optional.empty(); }
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    static class MeterRegistryConfiguration {
+        @Bean
+        public MeterRegistry meterRegistry() {
+            return new SimpleMeterRegistry();
+        }
     }
 }
