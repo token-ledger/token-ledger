@@ -15,6 +15,7 @@ Primary goal: users should eventually add one dependency, `token-ledger-starter`
 - Avoid high-cardinality Micrometer tags by default.
 - Do not place business logic in `token-ledger-starter`; keep starter as a thin user entrypoint.
 - If implementation classes stay under `internal`, expose them to other modules through deliberate public factories or public configuration APIs.
+- Commit messages must be written in Korean unless the user explicitly requests another language.
 
 ## Architecture
 
@@ -107,6 +108,45 @@ token-ledger:
   enabled: true
 ```
 
+## Autoconfigure Implementation Notes
+
+Autoconfigure is responsible for wiring the starter dependency graph into a Spring Boot application. It should not implement provider API calls, sample-app-only beans, or production Redis/JDBC budget stores.
+
+Bean registration principles:
+
+- Use `@ConditionalOnMissingBean` so user beans win over defaults.
+- Use `@ConditionalOnClass` for optional adapter integrations.
+- Use `@ConditionalOnProperty` for feature flags under `token-ledger.*`.
+- Register beans by public interface type whenever possible.
+- Keep `token-ledger-starter` free of business logic and bean creation.
+
+Default bean graph:
+
+| Bean | Condition | Purpose |
+| --- | --- | --- |
+| `CostCalculator` | missing bean | Core cost calculation |
+| `PricingRegistry` | missing bean | Pricing plan lookup |
+| `LedgerManager` | missing bean | Cost and usage recording |
+| `UsageExtractor` | Spring AI classpath + missing bean | Spring AI response usage extraction |
+| `LedgerAdvisor` | Spring AI classpath + missing bean | ChatClient advisor |
+| `MicroCostMetricsPublisher` | Micrometer classpath + `token-ledger.metrics.enabled` | Cost/token metrics listener |
+| `BudgetStateStore` | `token-ledger.budget.enabled` + missing bean | Default in-memory budget state |
+| `BudgetEvaluator` | `token-ledger.budget.enabled` + missing bean | Default budget evaluator |
+| `ChatClientCustomizer` | Spring AI classpath + `LedgerAdvisor` bean | Adds advisor to ChatClient builders |
+
+`core.internal` implementation classes should remain package-private. Cross-module construction should go through `LedgerComponents` or another deliberate public factory/API. Do not make internal implementation classes public just to satisfy autoconfigure access.
+
+Autoconfigure tests should use `ApplicationContextRunner` and verify:
+
+- context starts with default settings
+- pricing properties flow into `PricingProvider`, `PricingRegistry`, and `LedgerManager` cost calculation
+- user-defined beans are not overridden
+- Micrometer publisher registers only when `MeterRegistry` is available and metrics are enabled
+- budget beans do not register by default
+- budget beans register when budget is enabled
+- budget-enabled `LedgerAdvisor` calls `BudgetEvaluator`
+- Spring AI classpath registers `UsageExtractor`, `LedgerAdvisor`, and `ChatClientCustomizer`
+
 ## Recommended Configuration Shape
 
 ```yaml
@@ -146,6 +186,18 @@ Near-term E2E endpoints:
 - `GET /test/token-ledger/chat`: exercises the Spring AI `ChatClient` advisor path with a fake/mock provider or documented real provider setup.
 
 The E2E endpoints should make it easy to verify that `/actuator/prometheus` contains token-ledger metrics after a ledger event is recorded.
+
+## Maven Publishing Direction
+
+MVP publishing should proceed in this order:
+
+1. Add Gradle `maven-publish` configuration.
+2. Confirm artifact ids, versions, generated POM metadata, and runtime dependency scopes.
+3. Run `publishToMavenLocal`.
+4. Create or maintain an external consumer fixture outside the multi-module project.
+5. Verify the consumer can use only `implementation 'io.springai.ledger:token-ledger-starter:0.0.1-SNAPSHOT'`.
+6. Choose the remote Maven target: GitHub Packages, Maven Central, or private repository.
+7. Document credentials and CI publish flow before public release.
 
 ## Roadmap
 
