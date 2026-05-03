@@ -20,6 +20,9 @@ dependencies {
     // 모니터링 (프로메테우스가 데이터를 긁어갈 수 있게 해줌)
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
+
+    testImplementation 'org.springframework.ai:spring-ai-model'
+    testImplementation 'org.springframework.ai:spring-ai-client-chat'
 }
 
 // 스프링 부트 실행 파일(밀키트) 포장을 강제로 켭니다!

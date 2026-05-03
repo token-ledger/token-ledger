@@ -36,7 +36,7 @@ Primary goal: users should eventually add one dependency, `token-ledger-starter`
 | `token-ledger-budget` | Basic implementation complete | Needs richer policy/window/store support |
 | `token-ledger-autoconfigure` | Basic implementation complete | Bean registration, property binding, pricing/budget wiring, and ChatClient customizer implemented |
 | `token-ledger-starter` | Basic implementation complete | Thin final user entrypoint that brings runtime modules together |
-| `token-ledger-sample-app` | Current focus | Direct ledger metrics and budget E2E implemented; Spring AI advisor E2E still needed |
+| `token-ledger-sample-app` | Basic E2E complete | Direct ledger metrics, budget, and fake Spring AI advisor E2E implemented |
 
 ## Current Work Focus
 
@@ -45,7 +45,6 @@ The current MVP workstream is post-autoconfigure validation and packaging.
 MVP tasks:
 
 - Keep sample app dependent on `project(':token-ledger-starter')`.
-- Add sample app E2E checks for the Spring AI `ChatClient`/`LedgerAdvisor` path, using a fake/mock provider if needed before real API keys are available.
 - Add local Maven publishing and an external consumer fixture that depends on the published `token-ledger-starter` artifact.
 - Choose and document the remote Maven repository target before public release.
 
@@ -180,11 +179,11 @@ Current endpoints:
 - `GET /test/token-ledger/budget`: exercises budget enabled/limit behavior when budget beans are present.
 - `GET /actuator/prometheus`: validates actuator/prometheus exposure.
 
-Near-term E2E endpoints:
+Test-only E2E endpoint:
 
 - `GET /test/token-ledger/chat`: exercises the Spring AI `ChatClient` advisor path with a fake/mock provider or documented real provider setup.
 
-The direct ledger E2E test verifies that `/actuator/prometheus` contains token-ledger metrics after a ledger event is recorded.
+The direct ledger E2E test verifies that `/actuator/prometheus` contains token-ledger metrics after a ledger event is recorded. The fake ChatClient E2E test verifies that Spring AI `ChatClient` calls flow through `LedgerAdvisor` into token-ledger metrics without requiring a real provider API key.
 
 ## Maven Publishing Direction
 
@@ -200,9 +199,9 @@ MVP publishing should proceed in this order:
 
 ## Roadmap
 
-1. Sample app E2E verification for Spring AI advisor flow.
-2. Local Maven publishing plus an external consumer fixture that depends on the published starter artifact.
-3. Remote Maven repository publishing setup.
+1. Local Maven publishing plus an external consumer fixture that depends on the published starter artifact.
+2. Remote Maven repository publishing setup.
+3. Real provider Spring AI smoke verification behind an opt-in profile.
 4. Gradle dependency cleanup so library modules are not overloaded with app dependencies.
 5. Micrometer options object for autoconfigure integration.
 6. Budget policy expansion.
@@ -213,7 +212,7 @@ MVP publishing should proceed in this order:
 - Root `build.gradle` currently applies Spring Boot plugin and actuator/prometheus dependencies to every subproject. This is heavy for library modules.
 - `core.internal` implementation classes are package-private by design. Cross-module construction should continue through public factory/configuration APIs.
 - Micrometer publisher filters tags, but the configuration is still constructor-level and should be wrapped in an options object before autoconfigure integration.
-- Sample app currently proves bean registration, direct ledger recording, budget behavior, and Prometheus token-ledger metrics, but not yet a full Spring AI call E2E.
+- Sample app E2E uses a fake Spring AI `ChatModel`; real provider API behavior is not yet verified.
 - Published artifact behavior is not yet verified outside the multi-module repository.
 
 ## Verification
@@ -241,7 +240,7 @@ curl http://localhost:8080/actuator/prometheus
 ### 2026-05-04
 
 - Merged basic autoconfigure implementation for property binding, conditional bean registration, pricing registry wiring, budget-aware advisor creation, and ChatClient customization.
-- Added sample app direct ledger and budget E2E verification for starter endpoints, `LedgerManager.record(...)`, Micrometer listener wiring, Prometheus `ai.token.*` metrics, and budget block behavior.
+- Added sample app direct ledger, budget, and fake Spring AI ChatClient E2E verification for starter endpoints, `LedgerManager.record(...)`, `LedgerAdvisor`, Micrometer listener wiring, Prometheus `ai.token.*` metrics, and budget block behavior.
 - Reframed MVP roadmap around sample app E2E verification and Maven publishing/consumer validation.
 
 ### 2026-04-30
