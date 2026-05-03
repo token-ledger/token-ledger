@@ -33,23 +33,23 @@ Primary goal: users should eventually add one dependency, `token-ledger-starter`
 | `token-ledger-spring-ai` | Basic implementation complete | `UsageExtractor`, `LedgerAdvisor`, response usage recording |
 | `token-ledger-micrometer` | Basic implementation complete | Tag whitelist and metric metadata implemented; options object is next |
 | `token-ledger-budget` | Basic implementation complete | Needs richer policy/window/store support |
-| `token-ledger-autoconfigure` | Pending team work | Should own bean registration and property binding |
-| `token-ledger-starter` | Current focus | Should become final user entrypoint |
-| `token-ledger-sample-app` | Current focus | Should validate starter integration |
+| `token-ledger-autoconfigure` | Basic implementation complete | Bean registration, property binding, pricing/budget wiring, and ChatClient customizer implemented |
+| `token-ledger-starter` | Basic implementation complete | Thin final user entrypoint that brings runtime modules together |
+| `token-ledger-sample-app` | Current focus | Needs E2E verification for ledger metrics and Spring AI advisor flow |
 
 ## Current Work Focus
 
-The current local workstream is starter readiness, not autoconfigure implementation.
+The current MVP workstream is post-autoconfigure validation and packaging.
 
-Starter tasks:
+MVP tasks:
 
-- Clarify `token-ledger-starter` dependency intent.
 - Keep sample app dependent on `project(':token-ledger-starter')`.
-- Add README instructions for starter usage.
-- Prepare sample app smoke checks that work before autoconfigure exists.
-- Prepare TODO tests that can be enabled after autoconfigure lands.
+- Add sample app E2E checks that call `LedgerManager.record(...)` and verify token-ledger Prometheus metrics.
+- Add sample app E2E checks for the Spring AI `ChatClient`/`LedgerAdvisor` path, using a fake/mock provider if needed before real API keys are available.
+- Add local Maven publishing and an external consumer fixture that depends on the published `token-ledger-starter` artifact.
+- Choose and document the remote Maven repository target before public release.
 
-Autoconfigure is assigned to another teammate. Do not implement it unless explicitly asked.
+Autoconfigure basic implementation has landed. Future autoconfigure work should be incremental hardening rather than first implementation.
 
 Current Micrometer follow-up:
 
@@ -81,7 +81,7 @@ Starter should include the modules users need at runtime, especially `token-ledg
 
 ## Autoconfigure Contract
 
-The autoconfigure module should eventually provide:
+The autoconfigure module provides:
 
 - `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
 - `TokenLedgerAutoConfiguration`
@@ -133,32 +133,37 @@ token-ledger:
 
 `token-ledger-sample-app` should be a starter integration verification app.
 
-Near-term endpoints:
+Current endpoints:
 
 - `GET /test/token-ledger/smoke`: app is running and starter is on classpath.
 - `GET /test/token-ledger/beans`: reports whether expected autoconfigure beans exist.
 - `GET /actuator/prometheus`: validates actuator/prometheus exposure.
 
-The bean endpoint should avoid hard bean requirements until autoconfigure exists. Use `ApplicationContext#containsBean(...)` or type-safe optional lookups so the app still starts.
+Near-term E2E endpoints:
+
+- `GET /test/token-ledger/record`: records a deterministic token usage event through `LedgerManager`.
+- `GET /test/token-ledger/budget`: exercises budget enabled/limit behavior.
+- `GET /test/token-ledger/chat`: exercises the Spring AI `ChatClient` advisor path with a fake/mock provider or documented real provider setup.
+
+The E2E endpoints should make it easy to verify that `/actuator/prometheus` contains token-ledger metrics after a ledger event is recorded.
 
 ## Roadmap
 
-1. Starter entrypoint cleanup.
-2. Sample app starter smoke verification.
-3. Autoconfigure contract alignment.
-4. Autoconfigure implementation by teammate.
-5. Bean smoke tests enabled after autoconfigure lands.
-6. Gradle dependency cleanup so library modules are not overloaded with app dependencies.
-7. Micrometer options object for autoconfigure integration.
-8. Budget policy expansion.
-9. Streaming usage aggregation and fallback token estimation.
+1. Sample app E2E verification for direct ledger recording, metrics, budget, and Spring AI advisor flow.
+2. Local Maven publishing plus an external consumer fixture that depends on the published starter artifact.
+3. Remote Maven repository publishing setup.
+4. Gradle dependency cleanup so library modules are not overloaded with app dependencies.
+5. Micrometer options object for autoconfigure integration.
+6. Budget policy expansion.
+7. Streaming usage aggregation and fallback token estimation.
 
 ## Known Risks
 
 - Root `build.gradle` currently applies Spring Boot plugin and actuator/prometheus dependencies to every subproject. This is heavy for library modules.
-- `core.internal` implementation classes are package-private. Autoconfigure cannot instantiate them directly unless a public factory/API is introduced.
+- `core.internal` implementation classes are package-private by design. Cross-module construction should continue through public factory/configuration APIs.
 - Micrometer publisher filters tags, but the configuration is still constructor-level and should be wrapped in an options object before autoconfigure integration.
-- Autoconfigure is currently not implemented, so starter cannot provide true zero-config behavior yet.
+- Sample app currently proves bean registration and Prometheus exposure, but not yet a full Spring AI call E2E.
+- Published artifact behavior is not yet verified outside the multi-module repository.
 
 ## Verification
 
@@ -181,6 +186,12 @@ curl http://localhost:8080/actuator/prometheus
 ```
 
 ## Update History
+
+### 2026-05-04
+
+- Merged basic autoconfigure implementation for property binding, conditional bean registration, pricing registry wiring, budget-aware advisor creation, and ChatClient customization.
+- Confirmed sample app starter smoke endpoints and Prometheus actuator exposure.
+- Reframed MVP roadmap around sample app E2E verification and Maven publishing/consumer validation.
 
 ### 2026-04-30
 
