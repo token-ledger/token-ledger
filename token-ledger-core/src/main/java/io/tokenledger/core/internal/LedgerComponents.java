@@ -3,6 +3,7 @@ package io.tokenledger.core.internal;
 import io.tokenledger.core.CostCalculator;
 import io.tokenledger.core.LedgerListener;
 import io.tokenledger.core.LedgerManager;
+import io.tokenledger.core.PricingProvider;
 import io.tokenledger.core.PricingRegistry;
 
 import java.util.List;
@@ -19,8 +20,8 @@ public final class LedgerComponents {
         return new DefaultCostCalculator();
     }
 
-    public static PricingRegistry inMemoryPricingRegistry() {
-        return new InMemoryPricingRegistry();
+    public static PricingRegistry inMemoryPricingRegistry(List<PricingProvider> providers) {
+        return new InMemoryPricingRegistry(providers);
     }
 
     public static LedgerManager defaultLedgerManager(

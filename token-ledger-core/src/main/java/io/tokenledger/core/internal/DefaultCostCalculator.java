@@ -16,7 +16,7 @@ import java.util.Map;
  * 각 {@link TokenType} 별 단가를 적용하여 정밀하게 계산합니다.
  * 1K 토큰당 가격 정보를 사용하여 소수점 10자리까지 중간 계산 후 6자리로 최종 반올림합니다.
  */
-public class DefaultCostCalculator implements CostCalculator {
+class DefaultCostCalculator implements CostCalculator {
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
     @Override

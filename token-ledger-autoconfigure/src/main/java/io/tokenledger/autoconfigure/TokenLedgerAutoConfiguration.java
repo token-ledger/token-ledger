@@ -48,7 +48,7 @@ public class TokenLedgerAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public PricingRegistry pricingRegistry(ObjectProvider<PricingProvider> pricingProviders) {
-        return LedgerComponents.inMemoryPricingRegistry();
+        return LedgerComponents.inMemoryPricingRegistry(pricingProviders.orderedStream().toList());
     }
 
     /**
@@ -92,7 +92,28 @@ public class TokenLedgerAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnClass({ChatClient.class, LedgerSpringAiComponents.class})
-    public LedgerAdvisor ledgerAdvisor(LedgerManager ledgerManager, UsageExtractor usageExtractor) {
+    public LedgerAdvisor ledgerAdvisor(
+            LedgerManager ledgerManager,
+            UsageExtractor usageExtractor,
+            ObjectProvider<BudgetEvaluator> budgetEvaluator,
+            ObjectProvider<BudgetStateStore> budgetStateStore,
+            CostCalculator costCalculator,
+            PricingRegistry pricingRegistry
+    ) {
+        BudgetEvaluator evaluator = budgetEvaluator.getIfAvailable();
+        BudgetStateStore stateStore = budgetStateStore.getIfAvailable();
+
+        if (evaluator != null && stateStore != null) {
+            return LedgerSpringAiComponents.defaultLedgerAdvisor(
+                    ledgerManager,
+                    usageExtractor,
+                    evaluator,
+                    stateStore,
+                    costCalculator,
+                    pricingRegistry
+            );
+        }
+
         return LedgerSpringAiComponents.defaultLedgerAdvisor(ledgerManager, usageExtractor);
     }
 

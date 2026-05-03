@@ -1,6 +1,10 @@
 package io.tokenledger.springai.internal;
 
+import io.tokenledger.budget.BudgetEvaluator;
+import io.tokenledger.budget.BudgetStateStore;
+import io.tokenledger.core.CostCalculator;
 import io.tokenledger.core.LedgerManager;
+import io.tokenledger.core.PricingRegistry;
 import io.tokenledger.springai.LedgerAdvisor;
 import io.tokenledger.springai.UsageExtractor;
 
@@ -16,7 +20,28 @@ public final class LedgerSpringAiComponents {
         return new DefaultUsageExtractor();
     }
 
-    public static LedgerAdvisor defaultLedgerAdvisor(LedgerManager ledgerManager, UsageExtractor usageExtractor) {
+    public static LedgerAdvisor defaultLedgerAdvisor(
+            LedgerManager ledgerManager,
+            UsageExtractor usageExtractor
+    ) {
         return new DefaultLedgerAdvisor(ledgerManager, usageExtractor);
+    }
+
+    public static LedgerAdvisor defaultLedgerAdvisor(
+            LedgerManager ledgerManager,
+            UsageExtractor usageExtractor,
+            BudgetEvaluator budgetEvaluator,
+            BudgetStateStore budgetStateStore,
+            CostCalculator costCalculator,
+            PricingRegistry pricingRegistry
+    ) {
+        return new DefaultLedgerAdvisor(
+                ledgerManager,
+                usageExtractor,
+                budgetEvaluator,
+                budgetStateStore,
+                costCalculator,
+                pricingRegistry
+        );
     }
 }

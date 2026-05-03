@@ -2,13 +2,17 @@ package io.tokenledger.autoconfigure;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.tokenledger.budget.BudgetDecision;
 import io.tokenledger.budget.BudgetEvaluator;
+import io.tokenledger.budget.BudgetState;
 import io.tokenledger.budget.BudgetStateStore;
 import io.tokenledger.core.CostCalculator;
 import io.tokenledger.core.LedgerManager;
 import io.tokenledger.core.PricingProvider;
 import io.tokenledger.core.PricingRegistry;
+import io.tokenledger.core.domain.Cost;
 import io.tokenledger.core.domain.PricingPlan;
+import io.tokenledger.core.domain.TokenUsage;
 import io.tokenledger.springai.LedgerAdvisor;
 import io.tokenledger.springai.UsageExtractor;
 import org.assertj.core.api.SoftAssertions;
@@ -17,17 +21,24 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.ai.chat.client.ChatClientRequest;
+import org.springframework.ai.chat.client.advisor.api.AdvisorChain;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.math.BigDecimal;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import static io.tokenledger.core.domain.TokenType.COMPLETION;
 import static io.tokenledger.core.domain.TokenType.PROMPT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.argumentSet;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class TokenLedgerAutoConfigurationTest {
 
@@ -121,6 +132,45 @@ class TokenLedgerAutoConfigurationTest {
     }
 
     @Test
+    @DisplayName("설정된 가격 정책이 PricingRegistry와 LedgerManager 비용 계산에 연결되어야 한다")
+    void shouldRegisterConfiguredPricingPlansInRegistry() {
+        this.contextRunner
+                .withPropertyValues(buildProperties(
+                        "gpt-4o",
+                        "0.005",
+                        "0.015",
+                        "USD"
+                ))
+                .run(context -> {
+                    PricingRegistry pricingRegistry = context.getBean(PricingRegistry.class);
+                    LedgerManager ledgerManager = context.getBean(LedgerManager.class);
+
+                    var plan = pricingRegistry.getPlan("gpt-4o");
+                    Cost cost = ledgerManager.record(
+                            "gpt-4o",
+                            TokenUsage.from(1_000, 2_000),
+                            Map.of()
+                    );
+
+                    SoftAssertions.assertSoftly(softly -> {
+                        softly.assertThat(plan)
+                              .isPresent();
+                        softly.assertThat(plan.orElseThrow()
+                                              .getRate(PROMPT))
+                              .isEqualByComparingTo("0.005");
+                        softly.assertThat(plan.orElseThrow()
+                                              .getRate(COMPLETION))
+                              .isEqualByComparingTo("0.015");
+                        softly.assertThat(cost.value())
+                              .isEqualByComparingTo("0.035000");
+                        softly.assertThat(cost.currency()
+                                              .getCurrencyCode())
+                              .isEqualTo("USD");
+                    });
+                });
+    }
+
+    @Test
     @DisplayName("token-ledger.budget.enabled=true 일 때 Budget 관련 빈이 등록되어야 한다")
     void shouldRegisterBudgetBeansWhenEnabled() {
         this.contextRunner
@@ -128,6 +178,30 @@ class TokenLedgerAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasSingleBean(BudgetStateStore.class);
                     assertThat(context).hasSingleBean(BudgetEvaluator.class);
+                });
+    }
+
+    @Test
+    @DisplayName("Budget가 활성화되면 LedgerAdvisor가 BudgetEvaluator를 사용해야 한다")
+    void shouldWireBudgetEvaluatorIntoLedgerAdvisorWhenBudgetEnabled() {
+        this.contextRunner
+                .withUserConfiguration(RecordingBudgetEvaluatorConfiguration.class)
+                .withPropertyValues("token-ledger.budget.enabled=true")
+                .run(context -> {
+                    LedgerAdvisor advisor = context.getBean(LedgerAdvisor.class);
+                    RecordingBudgetEvaluator evaluator = context.getBean(RecordingBudgetEvaluator.class);
+
+                    ChatClientRequest request = mock(ChatClientRequest.class);
+                    when(request.context()).thenReturn(Map.of("tenant_id", "tenant-abc"));
+
+                    advisor.before(request, mock(AdvisorChain.class));
+
+                    SoftAssertions.assertSoftly(softly -> {
+                        softly.assertThat(evaluator.evaluateCalls())
+                              .isEqualTo(1);
+                        softly.assertThat(evaluator.lastTags())
+                              .containsEntry("tenant_id", "tenant-abc");
+                    });
                 });
     }
 
@@ -211,7 +285,40 @@ class TokenLedgerAutoConfigurationTest {
 
     static class UserCustomPricingRegistry implements PricingRegistry {
         @Override public void registerPlan(PricingPlan plan) {}
-        @Override public java.util.Optional<PricingPlan> getPlan(String modelId) { return java.util.Optional.empty(); }
+        @Override public Optional<PricingPlan> getPlan(String modelId) { return Optional.empty(); }
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    static class RecordingBudgetEvaluatorConfiguration {
+        @Bean
+        public RecordingBudgetEvaluator budgetEvaluator() {
+            return new RecordingBudgetEvaluator();
+        }
+    }
+
+    static class RecordingBudgetEvaluator implements BudgetEvaluator {
+        private int evaluateCalls;
+        private Map<String, String> lastTags = Map.of();
+
+        @Override
+        public BudgetDecision evaluate(Map<String, String> tags) {
+            this.evaluateCalls++;
+            this.lastTags = tags;
+            return new BudgetDecision(BudgetState.ALLOW, "allowed", BigDecimal.ZERO, BigDecimal.TEN);
+        }
+
+        @Override
+        public BudgetDecision evaluate(Map<String, String> tags, BigDecimal costAmount) {
+            return evaluate(tags);
+        }
+
+        int evaluateCalls() {
+            return evaluateCalls;
+        }
+
+        Map<String, String> lastTags() {
+            return lastTags;
+        }
     }
 
     @Configuration(proxyBeanMethods = false)
