@@ -40,7 +40,7 @@ Primary goal: users should eventually add one dependency, `token-ledger-starter`
 
 ## Current Work Focus
 
-The current MVP workstream is post-autoconfigure validation and packaging.
+The current MVP workstream is packaging and external consumer validation.
 
 MVP tasks:
 
@@ -49,6 +49,8 @@ MVP tasks:
 - Choose and document the remote Maven repository target before public release.
 
 Autoconfigure basic implementation has landed. Future autoconfigure work should be incremental hardening rather than first implementation.
+
+Gradle dependency cleanup has landed. Library modules should not regain app-only Spring Boot plugin, actuator, or Prometheus dependencies from the root build.
 
 Current Micrometer follow-up:
 
@@ -202,14 +204,12 @@ MVP publishing should proceed in this order:
 1. Local Maven publishing plus an external consumer fixture that depends on the published starter artifact.
 2. Remote Maven repository publishing setup.
 3. Real provider Spring AI smoke verification behind an opt-in profile.
-4. Gradle dependency cleanup so library modules are not overloaded with app dependencies.
-5. Micrometer options object for autoconfigure integration.
-6. Budget policy expansion.
-7. Streaming usage aggregation and fallback token estimation.
+4. Micrometer options object for autoconfigure integration.
+5. Budget policy expansion.
+6. Streaming usage aggregation and fallback token estimation.
 
 ## Known Risks
 
-- Root `build.gradle` currently applies Spring Boot plugin and actuator/prometheus dependencies to every subproject. This is heavy for library modules.
 - `core.internal` implementation classes are package-private by design. Cross-module construction should continue through public factory/configuration APIs.
 - Micrometer publisher filters tags, but the configuration is still constructor-level and should be wrapped in an options object before autoconfigure integration.
 - Sample app E2E uses a fake Spring AI `ChatModel`; real provider API behavior is not yet verified.
@@ -241,7 +241,8 @@ curl http://localhost:8080/actuator/prometheus
 
 - Merged basic autoconfigure implementation for property binding, conditional bean registration, pricing registry wiring, budget-aware advisor creation, and ChatClient customization.
 - Added sample app direct ledger, budget, and fake Spring AI ChatClient E2E verification for starter endpoints, `LedgerManager.record(...)`, `LedgerAdvisor`, Micrometer listener wiring, Prometheus `ai.token.*` metrics, and budget block behavior.
-- Reframed MVP roadmap around sample app E2E verification and Maven publishing/consumer validation.
+- Cleaned Gradle dependencies so app-only Spring Boot plugin, actuator, and Prometheus dependencies are scoped to the sample app instead of every library module.
+- Reframed MVP roadmap around Maven publishing and external consumer validation.
 
 ### 2026-04-30
 

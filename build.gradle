@@ -16,7 +16,6 @@ allprojects {
 subprojects {
     apply plugin: 'java-library'
     apply plugin: 'io.spring.dependency-management'
-    apply plugin: 'org.springframework.boot' // 경진 추가
 
     java {
         toolchain {
@@ -32,22 +31,13 @@ subprojects {
     }
 
     dependencies {
-        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testImplementation 'org.junit.jupiter:junit-jupiter'
+        testImplementation 'org.assertj:assertj-core'
+        testImplementation 'org.mockito:mockito-core'
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-        implementation 'org.springframework.boot:spring-boot-starter-actuator'
-        runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
     }
 
     tasks.named('test') {
         useJUnitPlatform()
-    }
-
-    if (project.plugins.hasPlugin('org.springframework.boot')) {
-        tasks.named('bootJar') {
-            enabled = false
-        }
-        tasks.named('jar') {
-            enabled = true
-        }
     }
 }
