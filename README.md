@@ -133,6 +133,12 @@ Publish all library modules to your local Maven repository:
 ./gradlew publishToMavenLocal
 ```
 
+Prepare a release build with signing enabled:
+
+```bash
+./gradlew publishToMavenLocal -PprojectVersion=0.0.1
+```
+
 Published starter coordinates:
 
 ```text
@@ -187,6 +193,36 @@ gpr.key=ghp_xxx
 ```
 
 For Maven Central promotion later, the published POM already includes license, SCM, issue tracker, CI, organization, developer, and inception year metadata. Signing and staging flow are still pending.
+
+Example `~/.gradle/gradle.properties` for release signing and Central Portal credentials:
+
+```properties
+signingPublicKeyFile=/absolute/path/to/public.asc
+signingKeyFile=/absolute/path/to/secring.asc
+signingPassword=your-gpg-passphrase
+centralUsername=your-central-portal-token-username
+centralPassword=your-central-portal-token-password
+```
+
+Create the signing key file once:
+
+```bash
+mkdir -p ~/.gradle
+gpg --armor --export 1198AD22D5C72EAB > ~/.gradle/token-ledger-public.asc
+gpg --armor --export-secret-keys 1198AD22D5C72EAB > ~/.gradle/token-ledger-signing.asc
+chmod 600 ~/.gradle/token-ledger-public.asc
+chmod 600 ~/.gradle/token-ledger-signing.asc
+```
+
+Release-to-Central flow:
+
+```bash
+./gradlew publishAllPublicationsToStagingRepository -PprojectVersion=0.0.1
+./gradlew jreleaserConfig -PprojectVersion=0.0.1
+./gradlew jreleaserDeploy -PprojectVersion=0.0.1
+```
+
+The repository now supports release-friendly version overrides with `-PprojectVersion=0.0.1`, signs published artifacts automatically when the signing key file properties are present, stages release artifacts into `build/staging-deploy`, and wires JReleaser to the Central Publisher Portal.
 
 ## Current Status
 

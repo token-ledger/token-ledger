@@ -49,6 +49,8 @@ MVP tasks:
 - Keep local Maven publishing and the external consumer fixture healthy as the default artifact verification path.
 - Validate GitHub Packages snapshot publishing before public release.
 - Keep published POM metadata aligned with Maven Central promotion requirements.
+- Keep Gradle signing and release property wiring ready for Central release work.
+- Keep JReleaser Central Portal staging and deploy wiring aligned with the verified `cloud.token-ledger` namespace.
 
 Autoconfigure basic implementation has landed. Future autoconfigure work should be incremental hardening rather than first implementation.
 
@@ -205,7 +207,7 @@ MVP publishing should proceed in this order:
 ## Roadmap
 
 1. GitHub Packages snapshot publishing flow and CI credentials setup.
-2. Maven Central signing and staging flow.
+2. Maven Central staging and release execution flow hardening.
 3. Real provider Spring AI smoke verification behind an opt-in profile.
 4. Micrometer options object for autoconfigure integration.
 5. Budget policy expansion.
@@ -255,6 +257,19 @@ Publish snapshots to GitHub Packages:
   -PmavenRepoPassword="$GITHUB_TOKEN"
 ```
 
+Prepare a signed release build locally:
+
+```bash
+./gradlew publishToMavenLocal -PprojectVersion=0.0.1
+```
+
+Stage and deploy a Central release:
+
+```bash
+./gradlew publishAllPublicationsToStagingRepository -PprojectVersion=0.0.1
+./gradlew jreleaserDeploy -PprojectVersion=0.0.1
+```
+
 ## Update History
 
 ### 2026-05-11
@@ -264,6 +279,9 @@ Publish snapshots to GitHub Packages:
 - Chose GitHub Packages as the first remote snapshot repository target and documented the publish command in `README.md`.
 - Added GitHub Packages consumer examples and expanded published POM metadata for later Maven Central promotion.
 - Switched `external-consumer-fixture` to use `project(':token-ledger-starter')` by default and require `-PusePublishedStarter=true` for published artifact verification so CI builds do not fail before publish.
+- Added Gradle `signing` integration and `projectVersion` override support so release builds can be produced with local GPG material before Central Portal upload wiring is finalized.
+- Prefer `signingKeyFile` over inline `signingKey` for local release signing because multiline armored keys are less error-prone when loaded from a file.
+- Added JReleaser Gradle integration targeting the Central Publisher Portal with `build/staging-deploy` staging repositories and `cloud.token-ledger` namespace wiring.
 
 ### 2026-05-04
 
