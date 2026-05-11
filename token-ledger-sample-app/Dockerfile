@@ -4,7 +4,7 @@
 FROM eclipse-temurin:25-jdk AS builder
 WORKDIR /build
 
-COPY . .
+COPY .. .
 RUN chmod +x ./gradlew
 
 # sample-app만 격리해서 빌드 (팀의 멀티 모듈 구조 존중)

@@ -40,7 +40,7 @@ jobs:
         run: |
           echo "도커 이미지를 빌드합니다 (Commit Hash & Latest 태그)..."
           # 커밋 해시 버전과 latest 버전 두 개를 동시에 빌드합니다.
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          docker build -f token-ledger-sample-app/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           
           echo "AWS ECR 창고로 두 태그 모두 전송합니다..."
           # 고유 번호(Hash) 버전 푸시
