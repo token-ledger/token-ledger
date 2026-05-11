@@ -10,13 +10,11 @@ import java.math.BigDecimal;
  * 판단에 필요한 최소한의 정보를 담습니다.
  */
 
+// 우리가 "의도한" 형태
 public record BudgetDecision(
-
     BudgetState state,
-
+    BudgetThreshold threshold,
     String reason,
-
     BigDecimal currentUsage,
-
     BigDecimal limit
 ) {}
