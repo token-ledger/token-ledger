@@ -142,7 +142,7 @@ io.springai.ledger:token-ledger-starter:0.0.1-SNAPSHOT
 Run the external consumer module against the published starter:
 
 ```bash
-./gradlew :external-consumer-fixture:bootRun
+./gradlew publishToMavenLocal :external-consumer-fixture:bootRun -PusePublishedStarter=true
 ```
 
 Verify that the external app booted from the published artifact path:
@@ -197,7 +197,9 @@ The starter and autoconfigure path is implemented at a basic level:
 - `token-ledger.pricing.*` is bound into pricing plans and connected to `PricingRegistry`.
 - Budget beans are connected to `LedgerAdvisor` when budget is enabled.
 - The sample app confirms starter classpath, bean registration, direct ledger recording, Spring AI `ChatClient` advisor flow with a fake model, budget behavior, token-ledger metrics, and Prometheus actuator exposure.
-- Library modules publish through `maven-publish`, and the `external-consumer-fixture` module resolves the published starter from `mavenLocal()`.
+- Library modules publish through `maven-publish`.
+- `external-consumer-fixture` uses a project dependency by default so the main CI build stays green.
+- Published artifact verification is enabled explicitly with `-PusePublishedStarter=true`.
 
 Remaining MVP work:
 

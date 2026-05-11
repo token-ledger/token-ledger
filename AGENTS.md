@@ -242,7 +242,7 @@ Verify the published starter from the external consumer module:
 
 ```bash
 ./gradlew publishToMavenLocal
-./gradlew :external-consumer-fixture:bootRun
+./gradlew :external-consumer-fixture:bootRun -PusePublishedStarter=true
 curl http://localhost:8081/test/token-ledger/published
 ```
 
@@ -263,6 +263,7 @@ Publish snapshots to GitHub Packages:
 - Added `external-consumer-fixture` as a repository-managed verification module that depends on published `io.springai.ledger:token-ledger-starter:0.0.1-SNAPSHOT` from `mavenLocal()`.
 - Chose GitHub Packages as the first remote snapshot repository target and documented the publish command in `README.md`.
 - Added GitHub Packages consumer examples and expanded published POM metadata for later Maven Central promotion.
+- Switched `external-consumer-fixture` to use `project(':token-ledger-starter')` by default and require `-PusePublishedStarter=true` for published artifact verification so CI builds do not fail before publish.
 
 ### 2026-05-04
 
