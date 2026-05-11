@@ -24,7 +24,7 @@ Primary goal: users should eventually add one dependency, `token-ledger-starter`
 | API & Domain | `token-ledger-core` | Core models, pricing, cost calculation interfaces, ledger interfaces |
 | Adapter | `token-ledger-spring-ai`, `token-ledger-micrometer`, `token-ledger-budget` | Integrate with Spring AI, Micrometer, and budget policy |
 | Infrastructure | `token-ledger-autoconfigure`, `token-ledger-starter` | Spring Boot auto-configuration and final user dependency |
-| Demo | `token-ledger-sample-app` | Local verification app for starter/autoconfigure integration |
+| Demo | `token-ledger-sample-app`, `external-consumer-fixture` | Local verification app for starter/autoconfigure integration and published artifact consumption |
 
 ## Module Status
 
@@ -37,6 +37,7 @@ Primary goal: users should eventually add one dependency, `token-ledger-starter`
 | `token-ledger-autoconfigure` | Basic implementation complete | Bean registration, property binding, pricing/budget wiring, and ChatClient customizer implemented |
 | `token-ledger-starter` | Basic implementation complete | Thin final user entrypoint that brings runtime modules together |
 | `token-ledger-sample-app` | Basic E2E complete | Direct ledger metrics, budget, and fake Spring AI advisor E2E implemented |
+| `external-consumer-fixture` | Basic implementation complete | Verification module that consumes the published starter from `mavenLocal` |
 
 ## Current Work Focus
 
@@ -45,8 +46,8 @@ The current MVP workstream is packaging and external consumer validation.
 MVP tasks:
 
 - Keep sample app dependent on `project(':token-ledger-starter')`.
-- Add local Maven publishing and an external consumer fixture that depends on the published `token-ledger-starter` artifact.
-- Choose and document the remote Maven repository target before public release.
+- Keep local Maven publishing and the external consumer fixture healthy as the default artifact verification path.
+- Validate GitHub Packages snapshot publishing before public release.
 
 Autoconfigure basic implementation has landed. Future autoconfigure work should be incremental hardening rather than first implementation.
 
@@ -194,15 +195,15 @@ MVP publishing should proceed in this order:
 1. Add Gradle `maven-publish` configuration.
 2. Confirm artifact ids, versions, generated POM metadata, and runtime dependency scopes.
 3. Run `publishToMavenLocal`.
-4. Create or maintain an external consumer fixture outside the multi-module project.
+4. Create or maintain an external consumer verification module that depends on the published artifact coordinates.
 5. Verify the consumer can use only `implementation 'io.springai.ledger:token-ledger-starter:0.0.1-SNAPSHOT'`.
-6. Choose the remote Maven target: GitHub Packages, Maven Central, or private repository.
+6. Publish snapshots to GitHub Packages.
 7. Document credentials and CI publish flow before public release.
 
 ## Roadmap
 
-1. Local Maven publishing plus an external consumer fixture that depends on the published starter artifact.
-2. Remote Maven repository publishing setup.
+1. GitHub Packages snapshot publishing flow and CI credentials setup.
+2. Maven Central or other public repository promotion flow.
 3. Real provider Spring AI smoke verification behind an opt-in profile.
 4. Micrometer options object for autoconfigure integration.
 5. Budget policy expansion.
@@ -213,7 +214,7 @@ MVP publishing should proceed in this order:
 - `core.internal` implementation classes are package-private by design. Cross-module construction should continue through public factory/configuration APIs.
 - Micrometer publisher filters tags, but the configuration is still constructor-level and should be wrapped in an options object before autoconfigure integration.
 - Sample app E2E uses a fake Spring AI `ChatModel`; real provider API behavior is not yet verified.
-- Published artifact behavior is not yet verified outside the multi-module repository.
+- Public remote repository consumption is not yet verified outside local Maven and GitHub Packages snapshot flow.
 
 ## Verification
 
@@ -235,7 +236,30 @@ Check Prometheus metrics:
 curl http://localhost:8080/actuator/prometheus
 ```
 
+Verify the published starter from the external consumer module:
+
+```bash
+./gradlew publishToMavenLocal
+./gradlew :external-consumer-fixture:bootRun
+curl http://localhost:8081/test/token-ledger/published
+```
+
+Publish snapshots to GitHub Packages:
+
+```bash
+./gradlew publish \
+  -PmavenRepoUrl=https://maven.pkg.github.com/token-ledger/token-ledger \
+  -PmavenRepoUsername="$GITHUB_ACTOR" \
+  -PmavenRepoPassword="$GITHUB_TOKEN"
+```
+
 ## Update History
+
+### 2026-05-11
+
+- Added Gradle `maven-publish` configuration for library modules with shared POM metadata and optional remote repository credentials.
+- Added `external-consumer-fixture` as a repository-managed verification module that depends on published `io.springai.ledger:token-ledger-starter:0.0.1-SNAPSHOT` from `mavenLocal()`.
+- Chose GitHub Packages as the first remote snapshot repository target and documented the publish command in `README.md`.
 
 ### 2026-05-04
 

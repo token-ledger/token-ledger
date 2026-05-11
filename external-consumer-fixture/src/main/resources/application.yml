@@ -1,0 +1,22 @@
+server:
+  port: 8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus, health
+
+token-ledger:
+  enabled: true
+  pricing:
+    plans:
+      - model-id: gpt-4o-mini
+        currency: USD
+        rates:
+          PROMPT: 0.00015
+          COMPLETION: 0.00060
+  metrics:
+    enabled: true
+    tag-whitelist:
+      - tenant_id
