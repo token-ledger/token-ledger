@@ -85,7 +85,16 @@ jreleaser {
                     active = 'RELEASE'
                     url = 'https://central.sonatype.com/api/v1/publisher'
                     namespace = 'cloud.token-ledger'
-                    stagingRepository('build/staging-deploy')
+                    [
+                        'token-ledger-core',
+                        'token-ledger-spring-ai',
+                        'token-ledger-micrometer',
+                        'token-ledger-budget',
+                        'token-ledger-autoconfigure',
+                        'token-ledger-starter'
+                    ].each { moduleName ->
+                        stagingRepository("${moduleName}/build/staging-deploy")
+                    }
 
                     if (centralUsername) {
                         username = centralUsername
