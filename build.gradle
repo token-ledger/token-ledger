@@ -58,11 +58,18 @@ subprojects {
                         name = project.name
                         description = 'Token Ledger modules for Spring AI token usage tracking, cost calculation, metrics, and budget enforcement.'
                         url = 'https://github.com/token-ledger/token-ledger'
+                        inceptionYear = '2026'
+
+                        organization {
+                            name = 'Token Ledger'
+                            url = 'https://github.com/token-ledger/token-ledger'
+                        }
 
                         licenses {
                             license {
                                 name = 'Apache License 2.0'
                                 url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                                distribution = 'repo'
                             }
                         }
 
@@ -70,13 +77,25 @@ subprojects {
                             developer {
                                 id = 'token-ledger'
                                 name = 'Token Ledger'
+                                url = 'https://github.com/token-ledger'
                             }
+                        }
+
+                        issueManagement {
+                            system = 'GitHub Issues'
+                            url = 'https://github.com/token-ledger/token-ledger/issues'
+                        }
+
+                        ciManagement {
+                            system = 'GitHub Actions'
+                            url = 'https://github.com/token-ledger/token-ledger/actions'
                         }
 
                         scm {
                             connection = 'scm:git:https://github.com/token-ledger/token-ledger.git'
                             developerConnection = 'scm:git:ssh://git@github.com/token-ledger/token-ledger.git'
                             url = 'https://github.com/token-ledger/token-ledger'
+                            tag = 'HEAD'
                         }
                     }
                 }

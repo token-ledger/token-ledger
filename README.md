@@ -160,6 +160,34 @@ Current remote snapshot target is GitHub Packages. Publish with explicit reposit
   -PmavenRepoPassword="$GITHUB_TOKEN"
 ```
 
+Consume the snapshot from GitHub Packages in another Gradle project:
+
+```gradle
+repositories {
+    maven {
+        url = uri("https://maven.pkg.github.com/token-ledger/token-ledger")
+        credentials {
+            username = findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
+            password = findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
+        }
+    }
+    mavenCentral()
+}
+
+dependencies {
+    implementation "io.springai.ledger:token-ledger-starter:0.0.1-SNAPSHOT"
+}
+```
+
+Example `~/.gradle/gradle.properties` for consumers:
+
+```properties
+gpr.user=your-github-id
+gpr.key=ghp_xxx
+```
+
+For Maven Central promotion later, the published POM already includes license, SCM, issue tracker, CI, organization, developer, and inception year metadata. Signing and staging flow are still pending.
+
 ## Current Status
 
 The starter and autoconfigure path is implemented at a basic level:

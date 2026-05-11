@@ -48,6 +48,7 @@ MVP tasks:
 - Keep sample app dependent on `project(':token-ledger-starter')`.
 - Keep local Maven publishing and the external consumer fixture healthy as the default artifact verification path.
 - Validate GitHub Packages snapshot publishing before public release.
+- Keep published POM metadata aligned with Maven Central promotion requirements.
 
 Autoconfigure basic implementation has landed. Future autoconfigure work should be incremental hardening rather than first implementation.
 
@@ -198,12 +199,13 @@ MVP publishing should proceed in this order:
 4. Create or maintain an external consumer verification module that depends on the published artifact coordinates.
 5. Verify the consumer can use only `implementation 'io.springai.ledger:token-ledger-starter:0.0.1-SNAPSHOT'`.
 6. Publish snapshots to GitHub Packages.
-7. Document credentials and CI publish flow before public release.
+7. Document consumer credentials and CI publish flow before public release.
+8. Add signing and staging automation before Maven Central promotion.
 
 ## Roadmap
 
 1. GitHub Packages snapshot publishing flow and CI credentials setup.
-2. Maven Central or other public repository promotion flow.
+2. Maven Central signing and staging flow.
 3. Real provider Spring AI smoke verification behind an opt-in profile.
 4. Micrometer options object for autoconfigure integration.
 5. Budget policy expansion.
@@ -260,6 +262,7 @@ Publish snapshots to GitHub Packages:
 - Added Gradle `maven-publish` configuration for library modules with shared POM metadata and optional remote repository credentials.
 - Added `external-consumer-fixture` as a repository-managed verification module that depends on published `io.springai.ledger:token-ledger-starter:0.0.1-SNAPSHOT` from `mavenLocal()`.
 - Chose GitHub Packages as the first remote snapshot repository target and documented the publish command in `README.md`.
+- Added GitHub Packages consumer examples and expanded published POM metadata for later Maven Central promotion.
 
 ### 2026-05-04
 
