@@ -1,0 +1,57 @@
+plugins {
+    id 'org.springframework.boot' version '4.0.5'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'java'
+}
+
+group = 'io.tokenledger.fixture'
+version = '0.0.1-SNAPSHOT'
+
+def usePublishedStarter = providers.gradleProperty('usePublishedStarter').map(Boolean.&parseBoolean).getOrElse(false)
+def publishedStarterVersion = providers.gradleProperty('publishedStarterVersion').getOrElse('0.0.1')
+def useSnapshotStarter = publishedStarterVersion.endsWith('-SNAPSHOT')
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+repositories {
+    if (!usePublishedStarter || useSnapshotStarter) {
+        mavenLocal()
+        maven {
+            url = uri("https://maven.pkg.github.com/token-ledger/token-ledger")
+            credentials {
+                username = findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
+                password = findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+    mavenCentral()
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.boot:spring-boot-dependencies:4.0.5"
+        mavenBom "org.springframework.ai:spring-ai-bom:1.1.4"
+    }
+}
+
+dependencies {
+    if (usePublishedStarter) {
+        implementation "cloud.token-ledger:token-ledger-starter:${publishedStarterVersion}"
+    } else {
+        implementation project(':token-ledger-starter')
+    }
+
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

@@ -1,0 +1,10 @@
+{
+  "title": "Token Ledger AI Cost Dashboard",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "AI Call Uptime (Test)",
+      "targets": [{ "expr": "up", "refId": "A" }]
+    }
+  ]
+}

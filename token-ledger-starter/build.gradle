@@ -1,0 +1,9 @@
+dependencies {
+    // Final user entrypoint.
+    // Applications should depend on this starter instead of individual token-ledger modules.
+    api project(':token-ledger-core')
+    api project(':token-ledger-spring-ai')
+    api project(':token-ledger-micrometer')
+    api project(':token-ledger-budget')
+    api project(':token-ledger-autoconfigure')
+}

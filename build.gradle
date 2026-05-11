@@ -2,23 +2,116 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '4.0.5' apply false
     id 'io.spring.dependency-management' version '1.1.7' apply false
+    id 'org.jreleaser' version '1.24.0'
 }
 
 allprojects {
-    group = 'io.springai.ledger'
-    version = '0.0.1-SNAPSHOT'
+    group = 'cloud.token-ledger'
+    version = providers.gradleProperty('projectVersion').orElse('0.0.1-SNAPSHOT').get()
 
     repositories {
         mavenCentral()
-        maven { url 'https://repo.spring.io/milestone' }
-        maven { url 'https://repo.spring.io/snapshot' }
+    }
+}
+
+jreleaser {
+    def signingPublicKeyFile = providers.gradleProperty('signingPublicKeyFile')
+        .orElse(providers.environmentVariable('SIGNING_PUBLIC_KEY_FILE'))
+        .orNull
+    def signingSecretKeyFile = providers.gradleProperty('signingKeyFile')
+        .orElse(providers.environmentVariable('SIGNING_KEY_FILE'))
+        .orNull
+    def signingPassphrase = providers.gradleProperty('signingPassword')
+        .orElse(providers.environmentVariable('SIGNING_PASSWORD'))
+        .orNull
+    def centralUsername = providers.gradleProperty('centralUsername')
+        .orElse(providers.environmentVariable('CENTRAL_USERNAME'))
+        .orNull
+    def centralPassword = providers.gradleProperty('centralPassword')
+        .orElse(providers.environmentVariable('CENTRAL_PASSWORD'))
+        .orNull
+
+    gitRootSearch = true
+
+    project {
+        copyright = '2026 Token Ledger'
+        authors = ['Token Ledger']
+        description = 'Token Ledger modules for Spring AI token usage tracking, cost calculation, metrics, and budget enforcement.'
+        inceptionYear = '2026'
+        links {
+            homepage = 'https://github.com/token-ledger/token-ledger'
+        }
+    }
+
+    def githubToken = providers.gradleProperty('githubToken')
+        .orElse(providers.environmentVariable('GITHUB_TOKEN'))
+        .orNull
+
+    release {
+        github {
+            enabled = true
+            repoOwner = 'token-ledger'
+            name = 'token-ledger'
+            skipTag = true
+            skipRelease = true
+
+            if (githubToken) {
+                token = githubToken
+            }
+        }
+    }
+
+    signing {
+        pgp {
+            active = 'RELEASE'
+            armored = true
+
+            if (signingPublicKeyFile && signingSecretKeyFile) {
+                mode = 'FILE'
+                publicKey = signingPublicKeyFile
+                secretKey = signingSecretKeyFile
+            }
+
+            if (signingPassphrase) {
+                passphrase = signingPassphrase
+            }
+        }
+    }
+
+    deploy {
+        maven {
+            mavenCentral {
+                sonatype {
+                    active = 'RELEASE'
+                    url = 'https://central.sonatype.com/api/v1/publisher'
+                    namespace = 'cloud.token-ledger'
+                    [
+                        'token-ledger-core',
+                        'token-ledger-spring-ai',
+                        'token-ledger-micrometer',
+                        'token-ledger-budget',
+                        'token-ledger-autoconfigure',
+                        'token-ledger-starter'
+                    ].each { moduleName ->
+                        stagingRepository("${moduleName}/build/staging-deploy")
+                    }
+
+                    if (centralUsername) {
+                        username = centralUsername
+                    }
+
+                    if (centralPassword) {
+                        password = centralPassword
+                    }
+                }
+            }
+        }
     }
 }
 
 subprojects {
     apply plugin: 'java-library'
     apply plugin: 'io.spring.dependency-management'
-    apply plugin: 'org.springframework.boot' // 경진 추가
 
     java {
         toolchain {
@@ -28,28 +121,134 @@ subprojects {
 
     dependencyManagement {
         imports {
-            mavenBom "org.springframework.ai:spring-ai-bom:1.1.0"
+            mavenBom "org.springframework.boot:spring-boot-dependencies:4.0.5"
+            mavenBom "org.springframework.ai:spring-ai-bom:1.1.4"
         }
     }
 
     dependencies {
-        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testImplementation 'org.junit.jupiter:junit-jupiter'
+        testImplementation 'org.assertj:assertj-core'
+        testImplementation 'org.mockito:mockito-core'
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-        // [모니터링 환경 구축용]
-        implementation 'org.springframework.boot:spring-boot-starter-actuator'
-        runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
     }
 
     tasks.named('test') {
         useJUnitPlatform()
     }
 
-    if (project.plugins.hasPlugin('org.springframework.boot')) {
-        tasks.named('bootJar') {
-            enabled = false
+    if (!(name in ['token-ledger-sample-app', 'external-consumer-fixture'])) {
+        apply plugin: 'maven-publish'
+        apply plugin: 'signing'
+
+        java {
+            withSourcesJar()
+            withJavadocJar()
         }
-        tasks.named('jar') {
-            enabled = true
+
+        def signingKeyFile = providers.gradleProperty('signingKeyFile')
+            .orElse(providers.environmentVariable('SIGNING_KEY_FILE'))
+            .orNull
+        def signingKey = providers.gradleProperty('signingKey')
+            .orElse(providers.environmentVariable('SIGNING_KEY'))
+            .orNull
+        def signingPassword = providers.gradleProperty('signingPassword')
+            .orElse(providers.environmentVariable('SIGNING_PASSWORD'))
+            .orNull
+
+        publishing {
+            publications {
+                mavenJava(MavenPublication) {
+                    from components.java
+
+                    pom {
+                        name = project.name
+                        description = 'Token Ledger modules for Spring AI token usage tracking, cost calculation, metrics, and budget enforcement.'
+                        url = 'https://github.com/token-ledger/token-ledger'
+                        inceptionYear = '2026'
+
+                        organization {
+                            name = 'Token Ledger'
+                            url = 'https://github.com/token-ledger/token-ledger'
+                        }
+
+                        licenses {
+                            license {
+                                name = 'Apache License 2.0'
+                                url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                                distribution = 'repo'
+                            }
+                        }
+
+                        developers {
+                            developer {
+                                id = 'token-ledger'
+                                name = 'Token Ledger'
+                                url = 'https://github.com/token-ledger'
+                            }
+                        }
+
+                        issueManagement {
+                            system = 'GitHub Issues'
+                            url = 'https://github.com/token-ledger/token-ledger/issues'
+                        }
+
+                        ciManagement {
+                            system = 'GitHub Actions'
+                            url = 'https://github.com/token-ledger/token-ledger/actions'
+                        }
+
+                        scm {
+                            connection = 'scm:git:https://github.com/token-ledger/token-ledger.git'
+                            developerConnection = 'scm:git:ssh://git@github.com/token-ledger/token-ledger.git'
+                            url = 'https://github.com/token-ledger/token-ledger'
+                            tag = 'HEAD'
+                        }
+                    }
+                }
+            }
+
+            repositories {
+                mavenLocal()
+
+                maven {
+                    name = 'staging'
+                    url = layout.buildDirectory.dir('staging-deploy')
+                }
+
+                def mavenRepoUrl = providers.gradleProperty('mavenRepoUrl').orNull
+                def mavenRepoUsername = providers.gradleProperty('mavenRepoUsername')
+                    .orElse(providers.environmentVariable('MAVEN_REPO_USERNAME'))
+                    .orNull
+                def mavenRepoPassword = providers.gradleProperty('mavenRepoPassword')
+                    .orElse(providers.environmentVariable('MAVEN_REPO_PASSWORD'))
+                    .orNull
+
+                if (mavenRepoUrl && mavenRepoUsername && mavenRepoPassword) {
+                    maven {
+                        name = 'remote'
+                        url = uri(mavenRepoUrl)
+                        credentials {
+                            username = mavenRepoUsername
+                            password = mavenRepoPassword
+                        }
+                    }
+                }
+            }
+        }
+
+        signing {
+            required {
+                !project.version.toString().endsWith('-SNAPSHOT')
+            }
+
+            if (signingKeyFile && signingPassword) {
+                useInMemoryPgpKeys(file(signingKeyFile).text, signingPassword)
+            } else if (signingKey && signingPassword) {
+                useInMemoryPgpKeys(signingKey, signingPassword)
+            }
+
+            sign publishing.publications.mavenJava
         }
     }
 }
