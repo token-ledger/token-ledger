@@ -40,4 +40,89 @@ subprojects {
     tasks.named('test') {
         useJUnitPlatform()
     }
+
+    if (!(name in ['token-ledger-sample-app', 'external-consumer-fixture'])) {
+        apply plugin: 'maven-publish'
+
+        java {
+            withSourcesJar()
+            withJavadocJar()
+        }
+
+        publishing {
+            publications {
+                mavenJava(MavenPublication) {
+                    from components.java
+
+                    pom {
+                        name = project.name
+                        description = 'Token Ledger modules for Spring AI token usage tracking, cost calculation, metrics, and budget enforcement.'
+                        url = 'https://github.com/token-ledger/token-ledger'
+                        inceptionYear = '2026'
+
+                        organization {
+                            name = 'Token Ledger'
+                            url = 'https://github.com/token-ledger/token-ledger'
+                        }
+
+                        licenses {
+                            license {
+                                name = 'Apache License 2.0'
+                                url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                                distribution = 'repo'
+                            }
+                        }
+
+                        developers {
+                            developer {
+                                id = 'token-ledger'
+                                name = 'Token Ledger'
+                                url = 'https://github.com/token-ledger'
+                            }
+                        }
+
+                        issueManagement {
+                            system = 'GitHub Issues'
+                            url = 'https://github.com/token-ledger/token-ledger/issues'
+                        }
+
+                        ciManagement {
+                            system = 'GitHub Actions'
+                            url = 'https://github.com/token-ledger/token-ledger/actions'
+                        }
+
+                        scm {
+                            connection = 'scm:git:https://github.com/token-ledger/token-ledger.git'
+                            developerConnection = 'scm:git:ssh://git@github.com/token-ledger/token-ledger.git'
+                            url = 'https://github.com/token-ledger/token-ledger'
+                            tag = 'HEAD'
+                        }
+                    }
+                }
+            }
+
+            repositories {
+                mavenLocal()
+
+                def mavenRepoUrl = providers.gradleProperty('mavenRepoUrl').orNull
+                def mavenRepoUsername = providers.gradleProperty('mavenRepoUsername')
+                    .orElse(providers.environmentVariable('MAVEN_REPO_USERNAME'))
+                    .orNull
+                def mavenRepoPassword = providers.gradleProperty('mavenRepoPassword')
+                    .orElse(providers.environmentVariable('MAVEN_REPO_PASSWORD'))
+                    .orNull
+
+                if (mavenRepoUrl && mavenRepoUsername && mavenRepoPassword) {
+                    maven {
+                        name = 'remote'
+                        url = uri(mavenRepoUrl)
+                        credentials {
+                            username = mavenRepoUsername
+                            password = mavenRepoPassword
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
