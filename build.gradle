@@ -2,14 +2,110 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '4.0.5' apply false
     id 'io.spring.dependency-management' version '1.1.7' apply false
+    id 'org.jreleaser' version '1.24.0'
 }
 
 allprojects {
     group = 'cloud.token-ledger'
-    version = '0.0.1-SNAPSHOT'
+    version = providers.gradleProperty('projectVersion').orElse('0.0.1-SNAPSHOT').get()
 
     repositories {
         mavenCentral()
+    }
+}
+
+jreleaser {
+    def signingPublicKeyFile = providers.gradleProperty('signingPublicKeyFile')
+        .orElse(providers.environmentVariable('SIGNING_PUBLIC_KEY_FILE'))
+        .orNull
+    def signingSecretKeyFile = providers.gradleProperty('signingKeyFile')
+        .orElse(providers.environmentVariable('SIGNING_KEY_FILE'))
+        .orNull
+    def signingPassphrase = providers.gradleProperty('signingPassword')
+        .orElse(providers.environmentVariable('SIGNING_PASSWORD'))
+        .orNull
+    def centralUsername = providers.gradleProperty('centralUsername')
+        .orElse(providers.environmentVariable('CENTRAL_USERNAME'))
+        .orNull
+    def centralPassword = providers.gradleProperty('centralPassword')
+        .orElse(providers.environmentVariable('CENTRAL_PASSWORD'))
+        .orNull
+
+    gitRootSearch = true
+
+    project {
+        copyright = '2026 Token Ledger'
+        authors = ['Token Ledger']
+        description = 'Token Ledger modules for Spring AI token usage tracking, cost calculation, metrics, and budget enforcement.'
+        inceptionYear = '2026'
+        links {
+            homepage = 'https://github.com/token-ledger/token-ledger'
+        }
+    }
+
+    def githubToken = providers.gradleProperty('githubToken')
+        .orElse(providers.environmentVariable('GITHUB_TOKEN'))
+        .orNull
+
+    release {
+        github {
+            enabled = true
+            repoOwner = 'token-ledger'
+            name = 'token-ledger'
+            skipTag = true
+            skipRelease = true
+
+            if (githubToken) {
+                token = githubToken
+            }
+        }
+    }
+
+    signing {
+        pgp {
+            active = 'RELEASE'
+            armored = true
+
+            if (signingPublicKeyFile && signingSecretKeyFile) {
+                mode = 'FILE'
+                publicKey = signingPublicKeyFile
+                secretKey = signingSecretKeyFile
+            }
+
+            if (signingPassphrase) {
+                passphrase = signingPassphrase
+            }
+        }
+    }
+
+    deploy {
+        maven {
+            mavenCentral {
+                sonatype {
+                    active = 'RELEASE'
+                    url = 'https://central.sonatype.com/api/v1/publisher'
+                    namespace = 'cloud.token-ledger'
+                    [
+                        'token-ledger-core',
+                        'token-ledger-spring-ai',
+                        'token-ledger-micrometer',
+                        'token-ledger-budget',
+                        'token-ledger-autoconfigure',
+                        'token-ledger-starter'
+                    ].each { moduleName ->
+                        stagingRepository("${moduleName}/build/staging-deploy")
+                    }
+
+                    if (centralUsername) {
+                        username = centralUsername
+                    }
+
+                    if (centralPassword) {
+                        password = centralPassword
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -43,11 +139,22 @@ subprojects {
 
     if (!(name in ['token-ledger-sample-app', 'external-consumer-fixture'])) {
         apply plugin: 'maven-publish'
+        apply plugin: 'signing'
 
         java {
             withSourcesJar()
             withJavadocJar()
         }
+
+        def signingKeyFile = providers.gradleProperty('signingKeyFile')
+            .orElse(providers.environmentVariable('SIGNING_KEY_FILE'))
+            .orNull
+        def signingKey = providers.gradleProperty('signingKey')
+            .orElse(providers.environmentVariable('SIGNING_KEY'))
+            .orNull
+        def signingPassword = providers.gradleProperty('signingPassword')
+            .orElse(providers.environmentVariable('SIGNING_PASSWORD'))
+            .orNull
 
         publishing {
             publications {
@@ -104,6 +211,11 @@ subprojects {
             repositories {
                 mavenLocal()
 
+                maven {
+                    name = 'staging'
+                    url = layout.buildDirectory.dir('staging-deploy')
+                }
+
                 def mavenRepoUrl = providers.gradleProperty('mavenRepoUrl').orNull
                 def mavenRepoUsername = providers.gradleProperty('mavenRepoUsername')
                     .orElse(providers.environmentVariable('MAVEN_REPO_USERNAME'))
@@ -123,6 +235,20 @@ subprojects {
                     }
                 }
             }
+        }
+
+        signing {
+            required {
+                !project.version.toString().endsWith('-SNAPSHOT')
+            }
+
+            if (signingKeyFile && signingPassword) {
+                useInMemoryPgpKeys(file(signingKeyFile).text, signingPassword)
+            } else if (signingKey && signingPassword) {
+                useInMemoryPgpKeys(signingKey, signingPassword)
+            }
+
+            sign publishing.publications.mavenJava
         }
     }
 }
