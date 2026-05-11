@@ -127,19 +127,63 @@ curl http://localhost:8080/actuator/prometheus
 
 ## Maven Publishing
 
+### Maven Central Release
+
+Published release coordinates:
+
+```text
+cloud.token-ledger:token-ledger-starter:0.0.1
+```
+
+Consume the release from Maven Central like a normal dependency:
+
+```gradle
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation "cloud.token-ledger:token-ledger-starter:0.0.1"
+}
+```
+
+Run the repository-managed external consumer module against the Central release:
+
+```bash
+./gradlew :external-consumer-fixture:bootRun -PusePublishedStarter=true
+```
+
+Verify that the external app booted from the published artifact path:
+
+```bash
+curl http://localhost:8081/test/token-ledger/published
+```
+
+Prepare a signed release build locally:
+
+```bash
+./gradlew publishToMavenLocal -PprojectVersion=0.0.1
+```
+
+Release-to-Central flow:
+
+```bash
+./gradlew publishAllPublicationsToStagingRepository -PprojectVersion=0.0.1
+./gradlew jreleaserConfig -PprojectVersion=0.0.1
+./gradlew jreleaserDeploy -PprojectVersion=0.0.1
+```
+
+The repository now supports release-friendly version overrides with `-PprojectVersion=0.0.1`, signs published artifacts automatically when the signing key file properties are present, stages release artifacts into `build/staging-deploy`, and wires JReleaser to the Central Publisher Portal.
+
+### Snapshot Publishing
+
 Publish all library modules to your local Maven repository:
 
 ```bash
 ./gradlew publishToMavenLocal
 ```
 
-Prepare a release build with signing enabled:
-
-```bash
-./gradlew publishToMavenLocal -PprojectVersion=0.0.1
-```
-
-Published starter coordinates:
+Published snapshot coordinates:
 
 ```text
 cloud.token-ledger:token-ledger-starter:0.0.1-SNAPSHOT
@@ -148,7 +192,9 @@ cloud.token-ledger:token-ledger-starter:0.0.1-SNAPSHOT
 Run the external consumer module against the published starter:
 
 ```bash
-./gradlew publishToMavenLocal :external-consumer-fixture:bootRun -PusePublishedStarter=true
+./gradlew publishToMavenLocal :external-consumer-fixture:bootRun \
+  -PusePublishedStarter=true \
+  -PpublishedStarterVersion=0.0.1-SNAPSHOT
 ```
 
 Verify that the external app booted from the published artifact path:
@@ -192,8 +238,6 @@ gpr.user=your-github-id
 gpr.key=ghp_xxx
 ```
 
-For Maven Central promotion later, the published POM already includes license, SCM, issue tracker, CI, organization, developer, and inception year metadata. Signing and staging flow are still pending.
-
 Example `~/.gradle/gradle.properties` for release signing and Central Portal credentials:
 
 ```properties
@@ -214,16 +258,6 @@ chmod 600 ~/.gradle/token-ledger-public.asc
 chmod 600 ~/.gradle/token-ledger-signing.asc
 ```
 
-Release-to-Central flow:
-
-```bash
-./gradlew publishAllPublicationsToStagingRepository -PprojectVersion=0.0.1
-./gradlew jreleaserConfig -PprojectVersion=0.0.1
-./gradlew jreleaserDeploy -PprojectVersion=0.0.1
-```
-
-The repository now supports release-friendly version overrides with `-PprojectVersion=0.0.1`, signs published artifacts automatically when the signing key file properties are present, stages release artifacts into `build/staging-deploy`, and wires JReleaser to the Central Publisher Portal.
-
 ## Current Status
 
 The starter and autoconfigure path is implemented at a basic level:
@@ -235,7 +269,7 @@ The starter and autoconfigure path is implemented at a basic level:
 - The sample app confirms starter classpath, bean registration, direct ledger recording, Spring AI `ChatClient` advisor flow with a fake model, budget behavior, token-ledger metrics, and Prometheus actuator exposure.
 - Library modules publish through `maven-publish`.
 - `external-consumer-fixture` uses a project dependency by default so the main CI build stays green.
-- Published artifact verification is enabled explicitly with `-PusePublishedStarter=true`.
+- Published artifact verification is enabled explicitly with `-PusePublishedStarter=true`, with release `0.0.1` as the default published coordinate and `-PpublishedStarterVersion=0.0.1-SNAPSHOT` available for snapshot checks.
 
 Remaining MVP work:
 

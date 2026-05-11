@@ -37,7 +37,7 @@ Primary goal: users should eventually add one dependency, `token-ledger-starter`
 | `token-ledger-autoconfigure` | Basic implementation complete | Bean registration, property binding, pricing/budget wiring, and ChatClient customizer implemented |
 | `token-ledger-starter` | Basic implementation complete | Thin final user entrypoint that brings runtime modules together |
 | `token-ledger-sample-app` | Basic E2E complete | Direct ledger metrics, budget, and fake Spring AI advisor E2E implemented |
-| `external-consumer-fixture` | Basic implementation complete | Verification module that consumes the published starter from `mavenLocal` |
+| `external-consumer-fixture` | Basic implementation complete | Verification module that consumes the published starter from Maven Central by default and can target snapshots explicitly |
 
 ## Current Work Focus
 
@@ -46,7 +46,7 @@ The current MVP workstream is packaging and external consumer validation.
 MVP tasks:
 
 - Keep sample app dependent on `project(':token-ledger-starter')`.
-- Keep local Maven publishing and the external consumer fixture healthy as the default artifact verification path.
+- Keep local Maven publishing healthy for snapshot verification and keep the external consumer fixture healthy as the default Maven Central release verification path.
 - Validate GitHub Packages snapshot publishing before public release.
 - Keep published POM metadata aligned with Maven Central promotion requirements.
 - Keep Gradle signing and release property wiring ready for Central release work.
@@ -202,12 +202,12 @@ MVP publishing should proceed in this order:
 5. Verify the consumer can use only `implementation 'cloud.token-ledger:token-ledger-starter:0.0.1-SNAPSHOT'`.
 6. Publish snapshots to GitHub Packages.
 7. Document consumer credentials and CI publish flow before public release.
-8. Add signing and staging automation before Maven Central promotion.
+8. Verify Maven Central release consumption with `mavenCentral()` only.
 
 ## Roadmap
 
-1. GitHub Packages snapshot publishing flow and CI credentials setup.
-2. Maven Central staging and release execution flow hardening.
+1. Maven Central release consumption regression coverage.
+2. GitHub Packages snapshot publishing flow and CI credentials setup.
 3. Real provider Spring AI smoke verification behind an opt-in profile.
 4. Micrometer options object for autoconfigure integration.
 5. Budget policy expansion.
@@ -218,7 +218,7 @@ MVP publishing should proceed in this order:
 - `core.internal` implementation classes are package-private by design. Cross-module construction should continue through public factory/configuration APIs.
 - Micrometer publisher filters tags, but the configuration is still constructor-level and should be wrapped in an options object before autoconfigure integration.
 - Sample app E2E uses a fake Spring AI `ChatModel`; real provider API behavior is not yet verified.
-- Public remote repository consumption is not yet verified outside local Maven and GitHub Packages snapshot flow.
+- Maven Central release consumption is now verified manually, but automated regression coverage is still thin.
 
 ## Verification
 
@@ -243,8 +243,15 @@ curl http://localhost:8080/actuator/prometheus
 Verify the published starter from the external consumer module:
 
 ```bash
-./gradlew publishToMavenLocal
 ./gradlew :external-consumer-fixture:bootRun -PusePublishedStarter=true
+curl http://localhost:8081/test/token-ledger/published
+```
+
+Verify the snapshot path explicitly:
+
+```bash
+./gradlew publishToMavenLocal
+./gradlew :external-consumer-fixture:bootRun -PusePublishedStarter=true -PpublishedStarterVersion=0.0.1-SNAPSHOT
 curl http://localhost:8081/test/token-ledger/published
 ```
 
@@ -279,6 +286,7 @@ Stage and deploy a Central release:
 - Chose GitHub Packages as the first remote snapshot repository target and documented the publish command in `README.md`.
 - Added GitHub Packages consumer examples and expanded published POM metadata for later Maven Central promotion.
 - Switched `external-consumer-fixture` to use `project(':token-ledger-starter')` by default and require `-PusePublishedStarter=true` for published artifact verification so CI builds do not fail before publish.
+- Promoted `cloud.token-ledger:token-ledger-starter:0.0.1` to Maven Central and switched `external-consumer-fixture` to use the Central release by default when published artifact verification is enabled.
 - Added Gradle `signing` integration and `projectVersion` override support so release builds can be produced with local GPG material before Central Portal upload wiring is finalized.
 - Prefer `signingKeyFile` over inline `signingKey` for local release signing because multiline armored keys are less error-prone when loaded from a file.
 - Added JReleaser Gradle integration targeting the Central Publisher Portal with `build/staging-deploy` staging repositories and `cloud.token-ledger` namespace wiring.

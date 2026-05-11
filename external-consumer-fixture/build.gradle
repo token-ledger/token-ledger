@@ -7,6 +7,10 @@ plugins {
 group = 'io.tokenledger.fixture'
 version = '0.0.1-SNAPSHOT'
 
+def usePublishedStarter = providers.gradleProperty('usePublishedStarter').map(Boolean.&parseBoolean).getOrElse(false)
+def publishedStarterVersion = providers.gradleProperty('publishedStarterVersion').getOrElse('0.0.1')
+def useSnapshotStarter = publishedStarterVersion.endsWith('-SNAPSHOT')
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(25)
@@ -14,12 +18,14 @@ java {
 }
 
 repositories {
-    mavenLocal()
-    maven {
-        url = uri("https://maven.pkg.github.com/token-ledger/token-ledger")
-        credentials {
-            username = findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
-            password = findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
+    if (!usePublishedStarter || useSnapshotStarter) {
+        mavenLocal()
+        maven {
+            url = uri("https://maven.pkg.github.com/token-ledger/token-ledger")
+            credentials {
+                username = findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
+                password = findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
+            }
         }
     }
     mavenCentral()
@@ -33,8 +39,8 @@ dependencyManagement {
 }
 
 dependencies {
-    if (providers.gradleProperty('usePublishedStarter').map(Boolean.&parseBoolean).getOrElse(false)) {
-        implementation 'cloud.token-ledger:token-ledger-starter:0.0.1-SNAPSHOT'
+    if (usePublishedStarter) {
+        implementation "cloud.token-ledger:token-ledger-starter:${publishedStarterVersion}"
     } else {
         implementation project(':token-ledger-starter')
     }
