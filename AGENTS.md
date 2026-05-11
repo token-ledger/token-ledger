@@ -68,7 +68,7 @@ Expected final user setup:
 
 ```gradle
 dependencies {
-    implementation 'io.springai.ledger:token-ledger-starter'
+    implementation 'cloud.token-ledger:token-ledger-starter'
 }
 ```
 
@@ -197,7 +197,7 @@ MVP publishing should proceed in this order:
 2. Confirm artifact ids, versions, generated POM metadata, and runtime dependency scopes.
 3. Run `publishToMavenLocal`.
 4. Create or maintain an external consumer verification module that depends on the published artifact coordinates.
-5. Verify the consumer can use only `implementation 'io.springai.ledger:token-ledger-starter:0.0.1-SNAPSHOT'`.
+5. Verify the consumer can use only `implementation 'cloud.token-ledger:token-ledger-starter:0.0.1-SNAPSHOT'`.
 6. Publish snapshots to GitHub Packages.
 7. Document consumer credentials and CI publish flow before public release.
 8. Add signing and staging automation before Maven Central promotion.
@@ -260,7 +260,7 @@ Publish snapshots to GitHub Packages:
 ### 2026-05-11
 
 - Added Gradle `maven-publish` configuration for library modules with shared POM metadata and optional remote repository credentials.
-- Added `external-consumer-fixture` as a repository-managed verification module that depends on published `io.springai.ledger:token-ledger-starter:0.0.1-SNAPSHOT` from `mavenLocal()`.
+- Added `external-consumer-fixture` as a repository-managed verification module that depends on published `cloud.token-ledger:token-ledger-starter:0.0.1-SNAPSHOT` from `mavenLocal()`.
 - Chose GitHub Packages as the first remote snapshot repository target and documented the publish command in `README.md`.
 - Added GitHub Packages consumer examples and expanded published POM metadata for later Maven Central promotion.
 - Switched `external-consumer-fixture` to use `project(':token-ledger-starter')` by default and require `-PusePublishedStarter=true` for published artifact verification so CI builds do not fail before publish.

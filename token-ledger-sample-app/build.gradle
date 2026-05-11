@@ -4,7 +4,7 @@ plugins {
     id 'java'
 }
 
-group = 'io.springai.ledger'
+group = 'cloud.token-ledger'
 version = '0.0.1-SNAPSHOT'
 
 repositories {
