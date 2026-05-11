@@ -6,7 +6,7 @@ The intended user experience is one dependency plus `token-ledger.*` configurati
 
 ```gradle
 dependencies {
-    implementation 'io.springai.ledger:token-ledger-starter'
+    implementation 'cloud.token-ledger:token-ledger-starter'
 }
 ```
 
@@ -136,7 +136,7 @@ Publish all library modules to your local Maven repository:
 Published starter coordinates:
 
 ```text
-io.springai.ledger:token-ledger-starter:0.0.1-SNAPSHOT
+cloud.token-ledger:token-ledger-starter:0.0.1-SNAPSHOT
 ```
 
 Run the external consumer module against the published starter:
@@ -175,7 +175,7 @@ repositories {
 }
 
 dependencies {
-    implementation "io.springai.ledger:token-ledger-starter:0.0.1-SNAPSHOT"
+    implementation "cloud.token-ledger:token-ledger-starter:0.0.1-SNAPSHOT"
 }
 ```
 
