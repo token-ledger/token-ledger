@@ -1,0 +1,23 @@
+plugins {
+    // Spring Boot 플러그인 적용 (실행 가능한 앱으로 만들기 위해)
+    id 'org.springframework.boot'
+    // 의존성 버전 관리 (Spring BOM 사용을 위해)
+    id 'io.spring.dependency-management'
+}
+
+dependencies {
+    // 예산 모듈 (BudgetEvaluator, BudgetNotificationService 등)
+    implementation project(':token-ledger-budget')
+
+    // 자동 설정 모듈 (Spring Boot 자동 빈 등록)
+    implementation project(':token-ledger-autoconfigure')
+
+    // Spring AI 연동 모듈 (UsageExtractor, LedgerAdvisor 등)
+    implementation project(':token-ledger-spring-ai')
+
+    // 핵심 모듈 (LedgerManager, CostCalculator 등)
+    implementation project(':token-ledger-core')
+
+    // 메일 전송을 위한 Spring Mail
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+}
