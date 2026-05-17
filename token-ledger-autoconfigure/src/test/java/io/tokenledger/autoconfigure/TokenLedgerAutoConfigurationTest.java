@@ -6,6 +6,7 @@ import io.tokenledger.budget.BudgetDecision;
 import io.tokenledger.budget.BudgetEvaluator;
 import io.tokenledger.budget.BudgetState;
 import io.tokenledger.budget.BudgetStateStore;
+import io.tokenledger.budget.BudgetThreshold;
 import io.tokenledger.core.CostCalculator;
 import io.tokenledger.core.LedgerManager;
 import io.tokenledger.core.PricingProvider;
@@ -304,7 +305,7 @@ class TokenLedgerAutoConfigurationTest {
         public BudgetDecision evaluate(Map<String, String> tags) {
             this.evaluateCalls++;
             this.lastTags = tags;
-            return new BudgetDecision(BudgetState.ALLOW, "allowed", BigDecimal.ZERO, BigDecimal.TEN);
+            return new BudgetDecision(BudgetState.ALLOW, BudgetThreshold.NONE, "allowed", BigDecimal.ZERO, BigDecimal.TEN);
         }
 
         @Override
