@@ -1,0 +1,17 @@
+spring:
+  mail:
+    host: sandbox.smtp.mailtrap.io
+    port: 2525
+    username: 330516f526f58f
+    password: 35907fd427fd8c
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+token-ledger:
+  budget:
+    enabled: true
+    monthly-limit: 10  # 테스트용 한도 (10달러)
+  notification:
+    from: noreply@tokenledger.io
+    to: sarahkj45@gmail.com  # 테스트 받을 이메일
