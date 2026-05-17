@@ -1,100 +1,107 @@
 package io.tokenledger.budget.internal;
 
-import io.tokenledger.budget.*;
+import io.tokenledger.budget.BudgetDecision;
+import io.tokenledger.budget.BudgetState;
+import io.tokenledger.budget.BudgetThreshold;
+import io.tokenledger.budget.BudgetStateStore;
 import io.tokenledger.budget.exception.BudgetExceededException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class DefaultBudgetEvaluatorTest {
 
+  private BudgetStateStore store;
+  private DefaultBudgetEvaluator evaluator;
+
+  private static final BigDecimal MONTHLY_LIMIT = new BigDecimal("100.00");
+  private static final Map<String, String> TAGS = Map.of("service", "test");
+
+  @BeforeEach
+  void setUp() {
+    store = mock(BudgetStateStore.class);
+    evaluator = new DefaultBudgetEvaluator(store, MONTHLY_LIMIT);
+  }
+
+  // ─── evaluate(tags, costAmount) ───────────────────────────────────────────
+
   @Test
-  void should_return_allow_when_usage_is_below_80_percent() {
-    // given
-    BudgetStateStore store = new InMemoryBudgetStateStore();
-    BudgetEvaluator evaluator =
-        new DefaultBudgetEvaluator(store, BigDecimal.valueOf(100));
+  void 정상_범위_사용() {
+    when(store.getAccumulatedCost(TAGS)).thenReturn(new BigDecimal("10.00"));
 
-    Map<String, String> tags = Map.of("tenant_id", "test");
+    BudgetDecision result = evaluator.evaluate(TAGS, new BigDecimal("10.00"));
 
-    // when
-    BudgetDecision decision =
-        evaluator.evaluate(tags, BigDecimal.valueOf(50));
-
-    // then
-    assertEquals(BudgetState.ALLOW, decision.state());
+    assertThat(result.state()).isEqualTo(BudgetState.ALLOW);
+    assertThat(result.threshold()).isEqualTo(BudgetThreshold.NONE);
   }
 
   @Test
-  void should_return_warn_when_usage_exceeds_80_percent() {
-    // given
-    BudgetStateStore store = new InMemoryBudgetStateStore();
-    BudgetEvaluator evaluator =
-        new DefaultBudgetEvaluator(store, BigDecimal.valueOf(100));
+  void 누적_50퍼센트_이상() {
+    when(store.getAccumulatedCost(TAGS)).thenReturn(new BigDecimal("40.00"));
 
-    Map<String, String> tags = Map.of("tenant_id", "test");
+    BudgetDecision result = evaluator.evaluate(TAGS, new BigDecimal("10.00"));
 
-    // when
-    BudgetDecision decision =
-        evaluator.evaluate(tags, BigDecimal.valueOf(85));
-
-    // then
-    assertEquals(BudgetState.WARN, decision.state());
+    assertThat(result.state()).isEqualTo(BudgetState.ALLOW);
+    assertThat(result.threshold()).isEqualTo(BudgetThreshold.HALF);
   }
 
   @Test
-  void should_throw_exception_when_usage_exceeds_limit() {
-    // given
-    BudgetStateStore store = new InMemoryBudgetStateStore();
-    BudgetEvaluator evaluator =
-        new DefaultBudgetEvaluator(store, BigDecimal.valueOf(100));
+  void 누적_80퍼센트_이상() {
+    when(store.getAccumulatedCost(TAGS)).thenReturn(new BigDecimal("70.00"));
 
-    Map<String, String> tags = Map.of("tenant_id", "test");
+    BudgetDecision result = evaluator.evaluate(TAGS, new BigDecimal("10.00"));
 
-    // when & then
-    assertThrows(
-        BudgetExceededException.class,
-        () -> evaluator.evaluate(tags, BigDecimal.valueOf(120))
-    );
+    assertThat(result.state()).isEqualTo(BudgetState.WARN);
+    assertThat(result.threshold()).isEqualTo(BudgetThreshold.WARNING);
   }
 
   @Test
-  void should_evaluate_current_status_without_cost_amount() {
-    // given
-    BudgetStateStore store = new InMemoryBudgetStateStore();
-    BudgetEvaluator evaluator =
-        new DefaultBudgetEvaluator(store, BigDecimal.valueOf(100));
+  void 예산_초과시_예외_발생() {
+    when(store.getAccumulatedCost(TAGS)).thenReturn(new BigDecimal("95.00"));
 
-    Map<String, String> tags = Map.of("tenant_id", "test");
-    store.addCost(tags, BigDecimal.valueOf(90));
+    assertThatThrownBy(() -> evaluator.evaluate(TAGS, new BigDecimal("10.00")))
+        .isInstanceOf(BudgetExceededException.class)
+        .extracting(e -> ((BudgetExceededException) e).getDecision())
+        .satisfies(decision -> {
+          assertThat(decision.state()).isEqualTo(BudgetState.BLOCK);
+          assertThat(decision.threshold()).isEqualTo(BudgetThreshold.EXCEEDED);
+        });
+  }
 
-    // when
-    BudgetDecision decision = evaluator.evaluate(tags);
+  // ─── evaluate(tags) ───────────────────────────────────────────────────────
 
-    // then
-    assertEquals(BudgetState.WARN, decision.state());
-    assertEquals(BigDecimal.valueOf(90), decision.currentUsage());
+  @Test
+  void 현재_사용량_정상() {
+    when(store.getAccumulatedCost(TAGS)).thenReturn(new BigDecimal("30.00"));
+
+    BudgetDecision result = evaluator.evaluate(TAGS);
+
+    assertThat(result.state()).isEqualTo(BudgetState.ALLOW);
+    assertThat(result.threshold()).isEqualTo(BudgetThreshold.NONE);
   }
 
   @Test
-  void evaluate_should_be_pure_function() {
-    // given
-    BudgetStateStore store = new InMemoryBudgetStateStore();
-    BudgetEvaluator evaluator =
-        new DefaultBudgetEvaluator(store, BigDecimal.valueOf(100));
+  void 현재_사용량_50퍼센트_이상() {
+    when(store.getAccumulatedCost(TAGS)).thenReturn(new BigDecimal("50.00"));
 
-    Map<String, String> tags = Map.of("tenant_id", "test");
+    BudgetDecision result = evaluator.evaluate(TAGS);
 
-    // when
-    evaluator.evaluate(tags, BigDecimal.valueOf(50));
-    evaluator.evaluate(tags, BigDecimal.valueOf(50));
+    assertThat(result.state()).isEqualTo(BudgetState.ALLOW);
+    assertThat(result.threshold()).isEqualTo(BudgetThreshold.HALF);
+  }
 
-    // then
-    // Still ALLOW because addCost was not called
-    assertEquals(BigDecimal.ZERO, store.getAccumulatedCost(tags));
-    assertEquals(BudgetState.ALLOW, evaluator.evaluate(tags, BigDecimal.valueOf(50)).state());
+  @Test
+  void 현재_사용량_80퍼센트_이상() {
+    when(store.getAccumulatedCost(TAGS)).thenReturn(new BigDecimal("80.00"));
+
+    BudgetDecision result = evaluator.evaluate(TAGS);
+
+    assertThat(result.state()).isEqualTo(BudgetState.WARN);
+    assertThat(result.threshold()).isEqualTo(BudgetThreshold.WARNING);
   }
 }

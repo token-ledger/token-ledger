@@ -1,22 +1,15 @@
 package io.tokenledger.budget.internal;
 
-import io.tokenledger.budget.*;
+import io.tokenledger.budget.BudgetDecision;
+import io.tokenledger.budget.BudgetEvaluator;
+import io.tokenledger.budget.BudgetState;
+import io.tokenledger.budget.BudgetStateStore;
+import io.tokenledger.budget.BudgetThreshold;
 import io.tokenledger.budget.exception.BudgetExceededException;
 
 import java.math.BigDecimal;
 import java.util.Map;
 
-/**
- * BudgetEvaluator의 기본 구현체입니다.
- *
- * 판단 기준:
- * - 80% 미만  → ALLOW
- * - 80% 이상  → WARN
- * - 100% 이상 → BLOCK (예외 발생)
- *
- * 이 클래스의 evaluate 메서드는 부수 효과가 없는 순수 함수로 동작합니다.
- * 실제 비용 누적은 BudgetStateStore.addCost를 통해 별도로 수행해야 합니다.
- */
 public class DefaultBudgetEvaluator implements BudgetEvaluator {
 
   private final BudgetStateStore store;
@@ -31,60 +24,94 @@ public class DefaultBudgetEvaluator implements BudgetEvaluator {
   }
 
   @Override
-  public BudgetDecision evaluate(Map<String, String> tags) {
-    return evaluate(tags, BigDecimal.ZERO);
-  }
-
-  @Override
   public BudgetDecision evaluate(
       Map<String, String> tags,
       BigDecimal costAmount
   ) {
 
-    // ✅ 현재까지 누적 비용
-    BigDecimal accumulated = store.getAccumulatedCost(tags);
+    BigDecimal currentUsage = store.getAccumulatedCost(tags);
+    BigDecimal newUsage = currentUsage.add(costAmount);
 
-    // ✅ 이번 호출까지 포함한 비용 (비교용)
-    BigDecimal nextUsage = accumulated.add(costAmount);
+    BigDecimal halfThreshold = monthlyLimit.multiply(BigDecimal.valueOf(0.5));
+    BigDecimal warningThreshold = monthlyLimit.multiply(BigDecimal.valueOf(0.8));
 
-    // ✅ 경고 기준 (80%)
-    BigDecimal warnThreshold =
-        monthlyLimit.multiply(new BigDecimal("0.8"));
-
-    /* =====================
-       1️⃣ 차단 (BLOCK)
-       ===================== */
-    if (nextUsage.compareTo(monthlyLimit) >= 0) {
-
+    // ✅ 100% 초과
+    if (newUsage.compareTo(monthlyLimit) > 0) {
       BudgetDecision decision = new BudgetDecision(
           BudgetState.BLOCK,
-          "월 예산 초과로 AI 호출이 차단되었습니다",
-          nextUsage,
+          BudgetThreshold.EXCEEDED,  // 수정
+          "월 예산을 초과했습니다",
+          newUsage,
           monthlyLimit
       );
-
       throw new BudgetExceededException(decision);
     }
 
-    /* =====================
-       2️⃣ 경고 (WARN)
-       ===================== */
-    if (nextUsage.compareTo(warnThreshold) >= 0) {
+    // ✅ 80% 이상
+    if (newUsage.compareTo(warningThreshold) >= 0) {
       return new BudgetDecision(
           BudgetState.WARN,
-          "월 예산의 80%에 도달했습니다",
-          nextUsage,
+          BudgetThreshold.WARNING,  // 수정
+          "월 예산의 80% 이상 사용",
+          newUsage,
           monthlyLimit
       );
     }
 
-    /* =====================
-       3️⃣ 허용 (ALLOW)
-       ===================== */
+    // ✅ 50% 이상
+    if (newUsage.compareTo(halfThreshold) >= 0) {
+      return new BudgetDecision(
+          BudgetState.ALLOW,
+          BudgetThreshold.HALF,  // 수정
+          "월 예산의 50% 이상 사용",
+          newUsage,
+          monthlyLimit
+      );
+    }
+
+    // ✅ 정상
     return new BudgetDecision(
         BudgetState.ALLOW,
-        "예산 범위 내입니다",
-        nextUsage,
+        BudgetThreshold.NONE,
+        "정상 범위 사용",
+        newUsage,
+        monthlyLimit
+    );
+  }
+
+  @Override
+  public BudgetDecision evaluate(Map<String, String> tags) {
+
+    BigDecimal usage = store.getAccumulatedCost(tags);
+
+    BigDecimal halfThreshold = monthlyLimit.multiply(BigDecimal.valueOf(0.5));
+    BigDecimal warningThreshold = monthlyLimit.multiply(BigDecimal.valueOf(0.8));
+
+    if (usage.compareTo(warningThreshold) >= 0) {
+      return new BudgetDecision(
+          BudgetState.WARN,
+          BudgetThreshold.WARNING,  // 수정
+          "월 예산의 80% 이상 사용",
+          usage,
+          monthlyLimit
+      );
+    }
+
+    if (usage.compareTo(halfThreshold) >= 0) {
+      return new BudgetDecision(
+          BudgetState.ALLOW,
+          BudgetThreshold.HALF,  // 수정
+          "월 예산의 50% 이상 사용",
+          usage,
+          monthlyLimit
+      );
+    }
+
+    return new BudgetDecision(
+        BudgetState.ALLOW,
+        BudgetThreshold.NONE,
+        "정상 범위 사용",
+        usage,
         monthlyLimit
     );
   }
