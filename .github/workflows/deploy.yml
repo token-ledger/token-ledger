@@ -51,21 +51,17 @@ jobs:
           docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_APP }}:$IMAGE_TAG
           docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_APP }}:latest
 
-      # ---------------------------------------------------------
-      # 🚨 [임시 보류] 아래 단계들은 다음 테라폼 작업 후 주석을 해제합니다. 🚨
-      # ---------------------------------------------------------
-
-      # - name: 4-2. Build and Push Custom Grafana
-      #   env:
-      #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-      #     IMAGE_TAG: ${{ github.sha }}
-      #   run: |
-      #     docker build -f token-ledger-sample-app/grafana/Dockerfile \
-      #       -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_GRAFANA }}:$IMAGE_TAG \
-      #       -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_GRAFANA }}:latest \
-      #       ./token-ledger-sample-app/grafana
-      #     docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_GRAFANA }}:$IMAGE_TAG
-      #     docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_GRAFANA }}:latest
+      - name: 4-2. Build and Push Custom Grafana
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -f token-ledger-sample-app/grafana/Dockerfile \
+            -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_GRAFANA }}:$IMAGE_TAG \
+            -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_GRAFANA }}:latest \
+            ./token-ledger-sample-app/grafana
+          docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_GRAFANA }}:$IMAGE_TAG
+          docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_GRAFANA }}:latest
 
       # - name: 5. Deploy to Amazon ECS (Force New Deployment)
       #   run: |

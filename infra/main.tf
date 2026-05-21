@@ -29,3 +29,13 @@ resource "aws_ecr_repository" "token_ledger_repo" {
 resource "aws_ecs_cluster" "token_ledger_cluster" {
   name = "token-ledger-cluster"
 }
+
+# 3. 그라파나용 ECR 창고 추가
+resource "aws_ecr_repository" "token_ledger_grafana_repo" {
+  name                 = "token-ledger-grafana" # 깃허브 액션과 이름이 일치해야 합니다.
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
