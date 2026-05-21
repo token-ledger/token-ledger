@@ -6,9 +6,9 @@ on:
       - main
 
 env:
-  AWS_REGION: us-east-1
+  AWS_REGION: ap-northeast-2
   # 1. 애플리케이션 창고
-  ECR_REPOSITORY_APP: token-ledger-sample-app
+  ECR_REPOSITORY_APP: token-ledger-app
   # 2. ⭐️ 그라파나 전용 창고 (ECR에서 새로 만드신 이름)
   ECR_REPOSITORY_GRAFANA: token-ledger-grafana
 
@@ -44,7 +44,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           # 루트에 있는 Dockerfile로 자바 앱 빌드
-          docker build -f token-ledger-sample-app/Dockerfile \
+          docker build -f token-ledger-app/Dockerfile \
             -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_APP }}:$IMAGE_TAG \
             -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_APP }}:latest .
           
@@ -61,10 +61,10 @@ jobs:
         run: |
           # grafana 폴더 안에 있는 Dockerfile로 그라파나 이미지 빌드
           # 컨텍스트를 grafana 폴더로 지정하여 provisioning 폴더를 복사합니다.
-          docker build -f token-ledger-sample-app/grafana/Dockerfile \
+          docker build -f token-ledger-app/grafana/Dockerfile \
             -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_GRAFANA }}:$IMAGE_TAG \
             -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_GRAFANA }}:latest \
-            ./token-ledger-sample-app/grafana
+            ./token-ledger-app/grafana
           
           docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_GRAFANA }}:$IMAGE_TAG
           docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_GRAFANA }}:latest
