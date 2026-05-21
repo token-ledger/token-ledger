@@ -63,10 +63,10 @@ jobs:
           docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_GRAFANA }}:$IMAGE_TAG
           docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_GRAFANA }}:latest
 
-      # - name: 5. Deploy to Amazon ECS (Force New Deployment)
-      #   run: |
-      #     echo "ECS 서비스를 최신 이미지들로 업데이트합니다..."
-      #     aws ecs update-service \
-      #       --cluster ${{ env.ECS_CLUSTER }} \
-      #       --service ${{ env.ECS_SERVICE }} \
-      #       --force-new-deployment
+      - name: 5. Deploy to Amazon ECS (Force New Deployment)
+        run: |
+          echo "ECS 서비스를 최신 이미지들로 업데이트합니다..."
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE }} \
+            --force-new-deployment

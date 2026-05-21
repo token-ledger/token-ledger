@@ -27,19 +27,21 @@ resource "aws_cloudwatch_log_group" "ecs_log_group" {
   retention_in_days = 7
 }
 
-# 3. 선수 명단 (Task Definition): "어떤 이미지를, 얼마만큼의 사양으로 띄울까?"
+# 3. 선수 명단 (Task Definition): 스프링 부트 + 그라파나
 resource "aws_ecs_task_definition" "app_task" {
   family                   = "token-ledger-app-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = "256" # 0.25 vCPU (프리티어 가성비)
-  memory                   = "512" # 0.5 GB RAM
+
+  # 💡 두 개의 컨테이너를 여유롭게 돌리기 위해 체급 업그레이드!
+  cpu                      = "512"  # 0.5 vCPU
+  memory                   = "1024" # 1 GB RAM
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = jsonencode([
+    # 🏃‍♂️ 1번 선수: 스프링 부트 애플리케이션
     {
       name      = "token-ledger-container"
-      # 테라폼이 알아서 아까 만든 ECR 창고 주소를 가져오고, 깃허브가 밀어넣은 latest 태그를 붙입니다!
       image     = "${aws_ecr_repository.token_ledger_repo.repository_url}:latest"
       essential = true
       portMappings = [
@@ -54,7 +56,29 @@ resource "aws_ecs_task_definition" "app_task" {
         options = {
           "awslogs-group"         = aws_cloudwatch_log_group.ecs_log_group.name
           "awslogs-region"        = "ap-northeast-2"
-          "awslogs-stream-prefix" = "ecs"
+          "awslogs-stream-prefix" = "ecs-spring" # 로그 구분용 접두사
+        }
+      }
+    },
+
+    # 🎨 2번 선수: 그라파나 쇼룸 (새로 추가!)
+    {
+      name      = "token-ledger-grafana-container"
+      image     = "${aws_ecr_repository.token_ledger_grafana_repo.repository_url}:latest"
+      essential = true
+      portMappings = [
+        {
+          containerPort = 3000
+          hostPort      = 3000
+          protocol      = "tcp"
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.ecs_log_group.name
+          "awslogs-region"        = "ap-northeast-2"
+          "awslogs-stream-prefix" = "ecs-grafana" # 로그 구분용 접두사
         }
       }
     }
