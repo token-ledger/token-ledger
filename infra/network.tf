@@ -48,21 +48,19 @@ resource "aws_route_table_association" "c" {
   route_table_id = aws_route_table.public_rt.id
 }
 
-# 4. 보안 그룹 (방화벽: 스프링 부트용 8080 포트 열어주기)
-resource "aws_security_group" "ecs_sg" {
-  name        = "token-ledger-ecs-sg"
-  description = "Allow inbound traffic for Spring Boot"
+# [추가] 1. 문지기(ALB) 전용 보안 그룹: 외부 전 세계에 80, 3000 포트 개방
+resource "aws_security_group" "alb_sg" {
+  name        = "token-ledger-alb-sg"
+  description = "Allow public HTTP traffic to ALB"
   vpc_id      = aws_vpc.main.id
 
-  # 인바운드 규칙 (밖에서 들어오는 요청 허용: 8080 포트)
   ingress {
-    from_port   = 8080
-    to_port     = 8080
+    from_port   = 80
+    to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # 전 세계 어디서든 접속 가능
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # 인바운드 규칙 2 (그라파나용 3000 추가)
   ingress {
     from_port   = 3000
     to_port     = 3000
@@ -70,7 +68,36 @@ resource "aws_security_group" "ecs_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # 아웃바운드 규칙 (안에서 밖으로 나가는 요청 허용: 전체 오픈)
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# [교체] 2. 실제 서버(ECS) 보안 그룹: 외부 직접 접속 차단, 오직 ALB가 넘겨준 트래픽만 허용
+resource "aws_security_group" "ecs_sg" {
+  name        = "token-ledger-ecs-sg"
+  description = "Allow inbound traffic ONLY from ALB"
+  vpc_id      = aws_vpc.main.id
+
+  # 스프링 부트용: 오직 ALB를 거쳐온 8080 트래픽만 통과
+  ingress {
+    from_port       = 8080
+    to_port         = 8080
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb_sg.id] # ⭐️ ALB 보안그룹 필터링
+  }
+
+  # 그라파나용: 오직 ALB를 거쳐온 3000 트래픽만 통과
+  ingress {
+    from_port       = 3000
+    to_port         = 3000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb_sg.id] # ⭐️ ALB 보안그룹 필터링
+  }
+
   egress {
     from_port   = 0
     to_port     = 0

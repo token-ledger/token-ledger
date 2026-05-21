@@ -39,3 +39,13 @@ resource "aws_ecr_repository" "token_ledger_grafana_repo" {
     scan_on_push = true
   }
 }
+
+# 4. 프로메테우스용 ECR 창고 추가
+resource "aws_ecr_repository" "token_ledger_prometheus_repo" {
+  name                 = "token-ledger-prometheus" # 깃허브 액션 환경변수와 일치시킵니다.
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
