@@ -59,6 +59,13 @@ resource "aws_ecs_task_definition" "app_task" {
     {
       name      = "token-ledger-grafana-container"
       image     = "${aws_ecr_repository.token_ledger_grafana_repo.repository_url}:latest"
+      # AWS 환경에서는 localhost로 묶어줍니다!
+      environment = [
+        {
+          name  = "PROMETHEUS_URL"
+          value = "http://localhost:9090"
+        }
+      ]
       essential = true
       portMappings = [{ containerPort = 3000, hostPort = 3000, protocol = "tcp" }]
       logConfiguration = {
