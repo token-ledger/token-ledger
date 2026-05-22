@@ -17,10 +17,10 @@ resource "aws_lb_target_group" "spring_tg" {
   port        = 8080
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
-  target_type = "ip" # Fargate 모드에서는 반드시 ip로 지정해야 합니다.
+  target_type = "ip"
 
   health_check {
-    path                = "/actuator/health" # 스프링 부트에 헬스체크용 경로가 있다면 변경 가능
+    path                = "/actuator/health"
     port                = "8080"
     protocol            = "HTTP"
     interval            = 30
@@ -39,7 +39,7 @@ resource "aws_lb_target_group" "grafana_tg" {
   target_type = "ip"
 
   health_check {
-    path                = "/api/health" # 그라파나 자체 내장 헬스체크 경로
+    path                = "/api/health"
     port                = "3000"
     protocol            = "HTTP"
     interval            = 30
@@ -49,19 +49,45 @@ resource "aws_lb_target_group" "grafana_tg" {
   }
 }
 
-# 4. 외부 80 포트 리스너 -> 스프링 부트(8080) 타겟 그룹으로 전달
+# 🌟 [추가됨] 4. 이미 발급된 ACM 인증서 데이터 가져오기
+data "aws_acm_certificate" "issued_cert" {
+  domain   = "token-ledger.site" # 발급받으신 도메인 입력
+  statuses = ["ISSUED"]
+}
+
+# 🌟 [수정됨] 5. 외부 80 포트 리스너 -> HTTPS(443)로 강제 리다이렉트
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.main.arn
   port              = "80"
   protocol          = "HTTP"
 
   default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.spring_tg.arn
+    type = "redirect"
+
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
   }
 }
 
-# 5. 외부 3000 포트 리스너 -> 그라파나(3000) 타겟 그룹으로 전달
+# 6. 외부 443(HTTPS) 포트 리스너 -> 그라파나 타겟 그룹으로 변경!
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = "443"
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = data.aws_acm_certificate.issued_cert.arn
+
+  default_action {
+    type             = "forward"
+    # 🚨 여기를 spring_tg.arn 에서 grafana_tg.arn 으로 변경합니다.
+    target_group_arn = aws_lb_target_group.grafana_tg.arn
+  }
+}
+
+# 7. 외부 3000 포트 리스너 -> 그라파나(3000) 타겟 그룹으로 전달 (기존 유지)
 resource "aws_lb_listener" "grafana" {
   load_balancer_arn = aws_lb.main.arn
   port              = "3000"
@@ -73,7 +99,7 @@ resource "aws_lb_listener" "grafana" {
   }
 }
 
-# 출력 파일: 생성이 완료되면 고정된 도메인 주소를 터미널에 띄워줍니다.
+# 8. 출력 파일
 output "alb_dns_name" {
   value       = aws_lb.main.dns_name
   description = "The 고정 접속 URL 주소"

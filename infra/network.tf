@@ -48,12 +48,13 @@ resource "aws_route_table_association" "c" {
   route_table_id = aws_route_table.public_rt.id
 }
 
-# [추가] 1. 문지기(ALB) 전용 보안 그룹: 외부 전 세계에 80, 3000 포트 개방
+# 🌟 [수정됨] 1. 문지기(ALB) 전용 보안 그룹: 외부 전 세계에 80, 443, 3000 포트 개방
 resource "aws_security_group" "alb_sg" {
   name        = "token-ledger-alb-sg"
   description = "Allow public HTTP traffic to ALB"
   vpc_id      = aws_vpc.main.id
 
+  # 기존 80 포트 (HTTP)
   ingress {
     from_port   = 80
     to_port     = 80
@@ -61,6 +62,15 @@ resource "aws_security_group" "alb_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # 🌟 [새로 추가된 부분] 443 포트 (HTTPS 자물쇠 통로)
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # 기존 3000 포트 (그라파나)
   ingress {
     from_port   = 3000
     to_port     = 3000
@@ -76,7 +86,7 @@ resource "aws_security_group" "alb_sg" {
   }
 }
 
-# [교체] 2. 실제 서버(ECS) 보안 그룹: 외부 직접 접속 차단, 오직 ALB가 넘겨준 트래픽만 허용
+# 2. 실제 서버(ECS) 보안 그룹: 외부 직접 접속 차단, 오직 ALB가 넘겨준 트래픽만 허용
 resource "aws_security_group" "ecs_sg" {
   name        = "token-ledger-ecs-sg"
   description = "Allow inbound traffic ONLY from ALB"
