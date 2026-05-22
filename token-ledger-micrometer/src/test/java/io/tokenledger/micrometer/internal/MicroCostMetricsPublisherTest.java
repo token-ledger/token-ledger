@@ -4,6 +4,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.tokenledger.core.*;
 import io.tokenledger.core.domain.*;
+import io.tokenledger.micrometer.MetricsOptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -110,5 +111,65 @@ class MicroCostMetricsPublisherTest {
         assertThat(meterRegistry.find("ai.token.cost.total")
                 .tag("request_id", "req-999")
                 .counter()).isNull();
+    }
+
+    @Test
+    @DisplayName("MetricsOptions로 여러 허용 태그를 지정할 수 있어야 한다")
+    void shouldPublishMultipleAllowedTagsFromOptions() {
+        publisher = new MicroCostMetricsPublisher(
+                meterRegistry,
+                MetricsOptions.withAllowedTagKeys(Set.of("tenant_id", "team"))
+        );
+        TokenUsage usage = TokenUsage.from(100, 200);
+        Cost cost = new Cost(new BigDecimal("0.5"), Currency.getInstance("USD"));
+        Map<String, String> tags = Map.of(
+                "tenant_id", "tenant-1",
+                "team", "platform",
+                "request_id", "req-999"
+        );
+        CostRecordedEvent event = new CostRecordedEvent("gpt-4o", usage, cost, tags);
+
+        publisher.onRecord(event);
+
+        assertThat(meterRegistry.find("ai.token.cost.total")
+                .tag("model", "gpt-4o")
+                .tag("tenant_id", "tenant-1")
+                .tag("team", "platform")
+                .tag("currency", "USD")
+                .counter()).isNotNull();
+
+        assertThat(meterRegistry.find("ai.token.cost.total")
+                .tag("request_id", "req-999")
+                .counter()).isNull();
+    }
+
+    @Test
+    @DisplayName("이벤트 태그가 null이어도 기본 메트릭은 발행되어야 한다")
+    void shouldPublishMetricsWhenTagsAreNull() {
+        TokenUsage usage = TokenUsage.from(100, 200);
+        Cost cost = new Cost(new BigDecimal("0.5"), Currency.getInstance("USD"));
+        CostRecordedEvent event = new CostRecordedEvent("gpt-4o", usage, cost, null);
+
+        publisher.onRecord(event);
+
+        assertThat(meterRegistry.find("ai.token.cost.total")
+                .tag("model", "gpt-4o")
+                .tag("currency", "USD")
+                .counter()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("이벤트 태그가 비어 있어도 기본 메트릭은 발행되어야 한다")
+    void shouldPublishMetricsWhenTagsAreEmpty() {
+        TokenUsage usage = TokenUsage.from(100, 200);
+        Cost cost = new Cost(new BigDecimal("0.5"), Currency.getInstance("USD"));
+        CostRecordedEvent event = new CostRecordedEvent("gpt-4o", usage, cost, Map.of());
+
+        publisher.onRecord(event);
+
+        assertThat(meterRegistry.find("ai.token.cost.total")
+                .tag("model", "gpt-4o")
+                .tag("currency", "USD")
+                .counter()).isNotNull();
     }
 }

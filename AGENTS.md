@@ -56,13 +56,13 @@ Autoconfigure basic implementation has landed. Future autoconfigure work should 
 
 Gradle dependency cleanup has landed. Library modules should not regain app-only Spring Boot plugin, actuator, or Prometheus dependencies from the root build.
 
-Current Micrometer follow-up:
+Current Micrometer status:
 
-- Introduce a small metrics options/properties object.
-- Keep default allowed tag keys as `tenant_id`.
-- Preserve the existing `MicroCostMetricsPublisher(MeterRegistry)` constructor.
-- Add tests for null/empty tags and multiple allowed tags.
-- Keep metric descriptions and base units stable.
+- `MetricsOptions` exists as the small Micrometer options object.
+- Default allowed tag keys remain `tenant_id`.
+- The existing `MicroCostMetricsPublisher(MeterRegistry)` constructor is preserved.
+- Tests cover null/empty tags and multiple allowed tags.
+- Metric descriptions and base units should remain stable.
 
 ## Starter Contract
 
@@ -278,6 +278,12 @@ Stage and deploy a Central release:
 ```
 
 ## Update History
+
+### 2026-05-23
+
+- Hardened Spring AI usage extraction for null responses, missing metadata, missing usage, and native provider usage preservation.
+- Added `MetricsOptions` for Micrometer publisher configuration while preserving existing constructors and default `tenant_id` tag behavior.
+- Added Micrometer tests for null tags, empty tags, and multiple allowed tag keys.
 
 ### 2026-05-11
 
