@@ -1,21 +1,21 @@
 services:
   prometheus:
-    image: prom/prometheus:latest
+    build: ./prometheus       # 👈 그라파나처럼 직접 굽기로 통일!
     container_name: prometheus
     ports:
       - "9090:9090"
-    volumes: # ★ 추가된 부분: 로컬에 있는 지도를 컨테이너 안으로 밀어 넣습니다.
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    extra_hosts:              # 👈 로컬 호스트(스프링 부트)와 통신하기 위한 뚫기
+      - "host.docker.internal:host-gateway"
 
   grafana:
-    image: grafana/grafana:latest
+    build: ./grafana
     container_name: grafana
     ports:
       - "3000:3000"
-    volumes:
-      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
-      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
     environment:
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
       - PROMETHEUS_URL=http://prometheus:9090
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_NAME=Main Org.
+      # 👇 여기 아래 두 줄을 집중해서 수정/추가해 주세요!
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer  # 기존 Admin에서 Viewer로 변경 (면접관용)
+      - GF_AUTH_DISABLE_LOGIN_FORM=false   # 로그인 창을 살려둠 (내 작업용 숨겨진 통로)

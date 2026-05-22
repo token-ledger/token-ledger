@@ -64,6 +64,23 @@ resource "aws_ecs_task_definition" "app_task" {
         {
           name  = "PROMETHEUS_URL"
           value = "http://localhost:9090"
+        },
+        {
+          name  = "GF_AUTH_ANONYMOUS_ENABLED"
+          value = "true"
+        },
+        {
+          name  = "GF_AUTH_ANONYMOUS_ORG_NAME"
+          value = "Main Org."
+        },
+        # 👇 AWS 테라폼 코드에도 이 두 줄을 추가해 줍니다.
+        {
+          name  = "GF_AUTH_ANONYMOUS_ORG_ROLE"
+          value = "Viewer"
+        },
+        {
+          name  = "GF_AUTH_DISABLE_LOGIN_FORM"
+          value = "false"
         }
       ]
       essential = true

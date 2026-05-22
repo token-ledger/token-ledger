@@ -1,8 +1,10 @@
 global:
-  scrape_interval: 10s # 10초마다 수집
+  scrape_interval: 10s
 
 scrape_configs:
   - job_name: 'token-ledger-backend'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['localhost:8080'] # ECS 내부에서는 localhost로 통신합니다!
+      # ECS용(localhost)과 로컬용(host.docker)을 둘 다 적습니다!
+      # 각 환경에서 접속되는 곳에서만 알아서 데이터를 빨아옵니다.
+      - targets: ['localhost:8080', 'host.docker.internal:8080']
