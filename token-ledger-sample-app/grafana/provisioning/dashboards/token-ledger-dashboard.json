@@ -4,7 +4,7 @@
   "metadata": {
     "name": "spring_boot_21",
     "namespace": "default",
-    "uid": "beeff799-6e5f-431f-90f6-cc1e315d871e",
+    "uid": "prometheus-uid",
     "resourceVersion": "1779436850069989",
     "generation": 11,
     "creationTimestamp": "2026-05-22T07:33:51Z",
