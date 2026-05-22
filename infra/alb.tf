@@ -20,7 +20,7 @@ resource "aws_lb_target_group" "spring_tg" {
   target_type = "ip" # Fargate 모드에서는 반드시 ip로 지정해야 합니다.
 
   health_check {
-    path                = "/" # 스프링 부트에 헬스체크용 경로가 있다면 변경 가능
+    path                = "/actuator/health" # 스프링 부트에 헬스체크용 경로가 있다면 변경 가능
     port                = "8080"
     protocol            = "HTTP"
     interval            = 30
