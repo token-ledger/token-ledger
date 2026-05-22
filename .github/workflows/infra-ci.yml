@@ -1,0 +1,51 @@
+name: Infra CI (Terraform)
+
+on:
+  push:
+    branches:
+      - main
+    # 👇 오직 infra 폴더 안의 파일이 수정될 때만 이 파이프라인이 돕니다!
+    paths:
+      - 'infra/**'
+
+env:
+  AWS_REGION: ap-northeast-2
+
+jobs:
+  terraform-ci:
+    name: Terraform Validate & Plan
+    runs-on: ubuntu-latest
+
+    # 🚨 아주 중요: 테라폼 명령어들이 'infra' 폴더 안에서 실행되도록 기본 경로 설정
+    defaults:
+      run:
+        working-directory: ./infra
+
+    steps:
+      - name: 1. Checkout code
+        uses: actions/checkout@v4
+
+      - name: 2. Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 3. Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: 4. Terraform Init
+        run: terraform init
+
+      - name: 5. Terraform Format Check
+        # 코드가 테라폼 표준 스타일(들여쓰기 등)에 맞게 예쁘게 작성되었는지 검사합니다.
+        run: terraform fmt -check
+
+      - name: 6. Terraform Validate
+        # 오타나 문법 에러가 없는지 꼼꼼하게 검사합니다.
+        run: terraform validate
+
+      - name: 7. Terraform Plan
+        # 실제로 AWS에 적용된다면 어떤 리소스가 생성/수정/삭제될지 견적서를 뽑아 보여줍니다.
+        run: terraform plan -no-color

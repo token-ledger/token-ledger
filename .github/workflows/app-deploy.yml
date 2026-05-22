@@ -10,6 +10,7 @@ on:
       - 'token-ledger-sample-app/prometheus/**'
       - '.github/workflows/monitor-deploy.yml'
       - 'README.md'
+      - 'infra/**'
 
 env:
   AWS_REGION: ap-northeast-2
