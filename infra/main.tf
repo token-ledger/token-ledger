@@ -49,3 +49,67 @@ resource "aws_ecr_repository" "token_ledger_prometheus_repo" {
     scan_on_push = true
   }
 }
+
+# ---------------------------------------------------
+# [ECR 수명 주기 정책] 각 창고별로 최근 10개의 이미지만 유지하고 나머지는 자동 삭제
+# ---------------------------------------------------
+
+# 1. 앱 본체 ECR 정책
+resource "aws_ecr_lifecycle_policy" "token_ledger_app_policy" {
+  repository = aws_ecr_repository.token_ledger_repo.name
+
+  policy = jsonencode({
+    rules = [{
+      rulePriority = 1
+      description  = "Keep last 10 images"
+      selection = {
+        tagStatus   = "any"
+        countType   = "imageCountMoreThan"
+        countNumber = 10
+      }
+      action = {
+        type = "expire"
+      }
+    }]
+  })
+}
+
+# 2. 그라파나 ECR 정책
+resource "aws_ecr_lifecycle_policy" "token_ledger_grafana_policy" {
+  repository = aws_ecr_repository.token_ledger_grafana_repo.name
+
+  policy = jsonencode({
+    rules = [{
+      rulePriority = 1
+      description  = "Keep last 10 images"
+      selection = {
+        tagStatus   = "any"
+        countType   = "imageCountMoreThan"
+        countNumber = 10
+      }
+      action = {
+        type = "expire"
+      }
+    }]
+  })
+}
+
+# 3. 프로메테우스 ECR 정책
+resource "aws_ecr_lifecycle_policy" "token_ledger_prometheus_policy" {
+  repository = aws_ecr_repository.token_ledger_prometheus_repo.name
+
+  policy = jsonencode({
+    rules = [{
+      rulePriority = 1
+      description  = "Keep last 10 images"
+      selection = {
+        tagStatus   = "any"
+        countType   = "imageCountMoreThan"
+        countNumber = 10
+      }
+      action = {
+        type = "expire"
+      }
+    }]
+  })
+}

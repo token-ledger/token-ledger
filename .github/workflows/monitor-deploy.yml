@@ -1,23 +1,25 @@
-name: Deploy to Amazon ECR (Multi-Container)
+name: Monitoring Infrastructure CI/CD
 
 on:
   push:
     branches:
       - main
+    # 👇 오직 모니터링 폴더 안의 파일이 수정될 때만 이 파이프라인이 돕니다!
+    paths:
+      - 'token-ledger-sample-app/grafana/**'
+      - 'token-ledger-sample-app/prometheus/**'
+      - '.github/workflows/monitor-deploy.yml'
 
 env:
   AWS_REGION: ap-northeast-2
-  ECR_REPOSITORY_APP: token-ledger-app
   ECR_REPOSITORY_GRAFANA: token-ledger-grafana
-  # [추가] 프로메테우스 창고 이름 환경변수
   ECR_REPOSITORY_PROMETHEUS: token-ledger-prometheus
-
   ECS_CLUSTER: token-ledger-cluster
   ECS_SERVICE: token-ledger-test-app-task-service
 
 jobs:
-  deploy:
-    name: Multi-Container Build & Push to ECR
+  deploy-monitor:
+    name: Build & Push Monitoring to ECR
     runs-on: ubuntu-latest
 
     steps:
@@ -35,19 +37,7 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # 4-1. 스프링 부트 앱 빌드 및 푸시
-      - name: 4-1. Build and Push Spring Boot App
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          docker build -f token-ledger-sample-app/Dockerfile \
-            -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_APP }}:$IMAGE_TAG \
-            -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_APP }}:latest .
-          docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_APP }}:latest
-
-      # 4-2. 커스텀 그라파나 빌드 및 푸시
-      - name: 4-2. Build and Push Custom Grafana
+      - name: 4-1. Build and Push Custom Grafana
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
@@ -58,8 +48,7 @@ jobs:
             ./token-ledger-sample-app/grafana
           docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_GRAFANA }}:latest
 
-      # [추가] 4-3. 커스텀 프로메테우스 빌드 및 푸시
-      - name: 4-3. Build and Push Custom Prometheus
+      - name: 4-2. Build and Push Custom Prometheus
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
@@ -70,12 +59,10 @@ jobs:
             ./token-ledger-sample-app/prometheus
           docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PROMETHEUS }}:latest
 
-      # 5. ECS 서비스 업데이트 배포 자동화
-      - name: 5. Deploy to Amazon ECS (Force New Deployment)
+      - name: 5. Deploy to Amazon ECS
         run: |
-          echo "ECS 서비스를 최신 이미지들로 업데이트합니다..."
+          echo "📊 모니터링 이미지가 업데이트되었습니다. ECS 배포를 시작합니다!"
           aws ecs update-service \
             --cluster ${{ env.ECS_CLUSTER }} \
             --service ${{ env.ECS_SERVICE }} \
             --force-new-deployment
-          echo "✅ 배포 명령 전송 완료!"

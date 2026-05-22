@@ -1,0 +1,71 @@
+name: Backend App CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    # 👇 모니터링 관련 파일이 수정될 때는 이 파이프라인을 무시합니다!
+    paths-ignore:
+      - 'token-ledger-sample-app/grafana/**'
+      - 'token-ledger-sample-app/prometheus/**'
+      - '.github/workflows/monitor-deploy.yml'
+      - 'README.md'
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY_APP: token-ledger-app
+  ECS_CLUSTER: token-ledger-cluster
+  ECS_SERVICE: token-ledger-test-app-task-service
+
+jobs:
+  deploy-app:
+    name: Build & Push App to ECR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Checkout code
+        uses: actions/checkout@v4
+
+      # 🚨 [핵심 최적화 1] 도커파일과 동일한 Java 25(Temurin) 세팅 및 Gradle 라이브러리 캐싱
+      - name: 2. Setup JDK 25
+        uses: actions/setup-java@v3
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      # 🚨 [핵심 최적화 2] 도커 밖에서 미리 .jar 파일을 초고속으로 빌드
+      - name: 3. Build with Gradle
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :token-ledger-sample-app:bootJar -x test
+
+      - name: 4. Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: 5. Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 🚨 [핵심 최적화 3] 도커는 자바 빌드 없이, 3번 단계에서 만든 .jar 파일만 주워 담아 포장합니다.
+      - name: 6. Build and Push Spring Boot App
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -f token-ledger-sample-app/Dockerfile \
+            -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_APP }}:$IMAGE_TAG \
+            -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_APP }}:latest .
+          docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_APP }}:latest
+
+      - name: 7. Deploy to Amazon ECS
+        run: |
+          echo "🚀 백엔드 앱 이미지가 업데이트되었습니다. ECS 배포를 시작합니다!"
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE }} \
+            --force-new-deployment
