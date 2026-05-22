@@ -39,7 +39,7 @@ jobs:
       - name: 3. Build with Gradle
         run: |
           chmod +x ./gradlew
-          ./gradlew :token-ledger-sample-app:bootJar -x test
+          ./gradlew build
 
       - name: 4. Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
