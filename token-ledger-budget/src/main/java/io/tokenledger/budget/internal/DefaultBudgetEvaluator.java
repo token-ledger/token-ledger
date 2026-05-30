@@ -36,7 +36,7 @@ public class DefaultBudgetEvaluator implements BudgetEvaluator {
     BigDecimal warningThreshold = monthlyLimit.multiply(BigDecimal.valueOf(0.8));
 
     // ✅ 100% 초과
-    if (newUsage.compareTo(monthlyLimit) > 0) {
+    if (newUsage.compareTo(monthlyLimit) >= 0) {
       BudgetDecision decision = new BudgetDecision(
           BudgetState.BLOCK,
           BudgetThreshold.EXCEEDED,  // 수정
