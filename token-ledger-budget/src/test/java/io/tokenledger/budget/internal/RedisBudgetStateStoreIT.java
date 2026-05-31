@@ -8,7 +8,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import java.math.BigDecimal;
 import java.util.Map;
 
-class RedisBudgetStateStoreTest {
+class RedisBudgetStateStoreIT {
 
   @Test
   void redis_should_store_and_accumulate_cost() {

@@ -2,3 +2,10 @@ dependencies {
     api project(':token-ledger-core')
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 }
+
+test {
+    useJUnitPlatform()
+
+    // Redis 테스트 제외
+    exclude '**/*Redis*'
+}
