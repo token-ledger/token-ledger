@@ -99,7 +99,7 @@ resource "aws_lb_listener" "grafana" {
   }
 }
 
-# 🌟 [신규 추가] 9. HTTPS 경로 기반 라우팅 규칙 (API는 스프링 부트로!)
+# 🌟 [수정됨] HTTPS 경로 기반 라우팅 규칙
 resource "aws_lb_listener_rule" "api_routing" {
   listener_arn = aws_lb_listener.https.arn
   priority     = 100
@@ -111,7 +111,8 @@ resource "aws_lb_listener_rule" "api_routing" {
 
   condition {
     path_pattern {
-      values = ["/test/*", "/api/*"]
+      # 🚨 "/api/*" 삭제! 이제 /test/* 만 스프링 부트로 갑니다.
+      values = ["/test/*"]
     }
   }
 }
