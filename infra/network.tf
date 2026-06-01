@@ -5,7 +5,7 @@ resource "aws_vpc" "main" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true
   enable_dns_hostnames = true
-  tags = { Name = "token-ledger-vpc" }
+  tags                 = { Name = "token-ledger-vpc" }
 }
 
 # 2. 퍼블릭 서브넷 2개 (가용영역 a, c에 쪼개서 서버를 이중화할 공간)
@@ -14,7 +14,7 @@ resource "aws_subnet" "public_a" {
   cidr_block              = "10.0.1.0/24"
   availability_zone       = "ap-northeast-2a"
   map_public_ip_on_launch = true # 컨테이너에 퍼블릭 IP 자동 할당
-  tags = { Name = "token-ledger-public-a" }
+  tags                    = { Name = "token-ledger-public-a" }
 }
 
 resource "aws_subnet" "public_c" {
@@ -22,7 +22,7 @@ resource "aws_subnet" "public_c" {
   cidr_block              = "10.0.2.0/24"
   availability_zone       = "ap-northeast-2c"
   map_public_ip_on_launch = true
-  tags = { Name = "token-ledger-public-c" }
+  tags                    = { Name = "token-ledger-public-c" }
 }
 
 # 3. 인터넷 게이트웨이 & 라우팅 (외부 인터넷과 통신하게 해주는 문)

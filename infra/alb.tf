@@ -81,7 +81,7 @@ resource "aws_lb_listener" "https" {
   certificate_arn   = data.aws_acm_certificate.issued_cert.arn
 
   default_action {
-    type             = "forward"
+    type = "forward"
     # 🚨 여기를 spring_tg.arn 에서 grafana_tg.arn 으로 변경합니다.
     target_group_arn = aws_lb_target_group.grafana_tg.arn
   }

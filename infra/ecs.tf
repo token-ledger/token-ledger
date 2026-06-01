@@ -8,8 +8,8 @@ resource "aws_iam_role" "ecs_task_execution_role" {
     Version = "2012-10-17"
     Statement = [
       {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
+        Action    = "sts:AssumeRole"
+        Effect    = "Allow"
         Principal = { Service = "ecs-tasks.amazonaws.com" }
       }
     ]
@@ -34,16 +34,16 @@ resource "aws_ecs_task_definition" "app_task" {
   requires_compatibilities = ["FARGATE"]
 
   # 💡 3개의 컨테이너를 위해 체급을 한 단계 더 올립니다. (프리티어 이내 안전권)
-  cpu                      = "512"  # 0.5 vCPU
-  memory                   = "2048" # 2 GB RAM
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  cpu                = "512"  # 0.5 vCPU
+  memory             = "2048" # 2 GB RAM
+  execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = jsonencode([
     # 🏃‍♂️ 1번 선수: 스프링 부트
     {
-      name      = "token-ledger-container"
-      image     = "${aws_ecr_repository.token_ledger_repo.repository_url}:latest"
-      essential = true
+      name         = "token-ledger-container"
+      image        = "${aws_ecr_repository.token_ledger_repo.repository_url}:latest"
+      essential    = true
       portMappings = [{ containerPort = 8080, hostPort = 8080, protocol = "tcp" }]
       logConfiguration = {
         logDriver = "awslogs"
@@ -57,8 +57,8 @@ resource "aws_ecs_task_definition" "app_task" {
 
     # 🎨 2번 선수: 그라파나
     {
-      name      = "token-ledger-grafana-container"
-      image     = "${aws_ecr_repository.token_ledger_grafana_repo.repository_url}:latest"
+      name  = "token-ledger-grafana-container"
+      image = "${aws_ecr_repository.token_ledger_grafana_repo.repository_url}:latest"
       # AWS 환경에서는 localhost로 묶어줍니다!
       environment = [
         {
@@ -83,7 +83,7 @@ resource "aws_ecs_task_definition" "app_task" {
           value = "false"
         }
       ]
-      essential = true
+      essential    = true
       portMappings = [{ containerPort = 3000, hostPort = 3000, protocol = "tcp" }]
       logConfiguration = {
         logDriver = "awslogs"
@@ -97,9 +97,9 @@ resource "aws_ecs_task_definition" "app_task" {
 
     # 🕵️‍♂️ [추가] 3번 선수: 프로메테우스 (외부 포트는 막고 내부 9090만 활성화)
     {
-      name      = "token-ledger-prometheus-container"
-      image     = "${aws_ecr_repository.token_ledger_prometheus_repo.repository_url}:latest"
-      essential = true
+      name         = "token-ledger-prometheus-container"
+      image        = "${aws_ecr_repository.token_ledger_prometheus_repo.repository_url}:latest"
+      essential    = true
       portMappings = [{ containerPort = 9090, hostPort = 9090, protocol = "tcp" }]
       logConfiguration = {
         logDriver = "awslogs"
