@@ -99,6 +99,23 @@ resource "aws_lb_listener" "grafana" {
   }
 }
 
+# 🌟 [신규 추가] 9. HTTPS 경로 기반 라우팅 규칙 (API는 스프링 부트로!)
+resource "aws_lb_listener_rule" "api_routing" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 100
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.spring_tg.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/test/*", "/api/*"]
+    }
+  }
+}
+
 # 8. 출력 파일
 output "alb_dns_name" {
   value       = aws_lb.main.dns_name
