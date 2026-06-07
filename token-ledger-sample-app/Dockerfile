@@ -1,22 +1,13 @@
-# ==========================================
-# 1단계: 빌드 환경 (Java 25 규격 적용)
-# ==========================================
-FROM eclipse-temurin:25-jdk AS builder
-WORKDIR /build
-
-COPY .. .
-RUN chmod +x ./gradlew
-
-# sample-app만 격리해서 빌드 (팀의 멀티 모듈 구조 존중)
-RUN ./gradlew :token-ledger-sample-app:bootJar -x test
+# token-ledger-sample-app/Dockerfile
 
 # ==========================================
-# 2단계: 실행 환경 (Java 25 규격 적용)
+# 실행 환경 (Java 25 규격 적용) - 빌드는 GitHub Actions가 담당
 # ==========================================
 FROM eclipse-temurin:25-jre
 WORKDIR /app
 
-COPY --from=builder /build/token-ledger-sample-app/build/libs/*SNAPSHOT.jar ./app.jar
+# 깃허브 액션이 미리 빌드해둔 jar 파일을 컨테이너 내부로 복사
+COPY token-ledger-sample-app/build/libs/*SNAPSHOT.jar ./app.jar
 
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

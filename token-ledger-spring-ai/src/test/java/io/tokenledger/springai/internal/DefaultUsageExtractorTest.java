@@ -27,6 +27,7 @@ class DefaultUsageExtractorTest {
         Usage usage = mock(Usage.class);
         when(usage.getPromptTokens()).thenReturn(100);
         when(usage.getCompletionTokens()).thenReturn(200);
+        when(usage.getNativeUsage()).thenReturn(Map.of("provider", "openai"));
 
         ChatResponseMetadata metadata = ChatResponseMetadata.builder()
                 .usage(usage)
@@ -39,6 +40,7 @@ class DefaultUsageExtractorTest {
 
         assertThat(result.getCount(TokenType.PROMPT)).isEqualTo(100L);
         assertThat(result.getCount(TokenType.COMPLETION)).isEqualTo(200L);
+        assertThat(result.metadata()).containsEntry("nativeUsage", Map.of("provider", "openai"));
     }
 
     @Test
@@ -61,5 +63,45 @@ class DefaultUsageExtractorTest {
         assertThat(result.getCount(TokenType.PROMPT)).isEqualTo(100L);
         assertThat(result.getCount(TokenType.COMPLETION)).isEqualTo(200L);
         assertThat(result.getCount(TokenType.REASONING)).isEqualTo(150L);
+    }
+
+    @Test
+    @DisplayName("응답이 null이면 0 토큰 사용량을 반환해야 한다")
+    void extractNullResponse() {
+        TokenUsage result = extractor.extract(null);
+
+        assertThat(result.promptTokens()).isZero();
+        assertThat(result.completionTokens()).isZero();
+        assertThat(result.metadata()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("ChatResponse metadata가 null이면 0 토큰 사용량을 반환해야 한다")
+    void extractNullMetadata() {
+        ChatResponse chatResponse = mock(ChatResponse.class);
+        when(chatResponse.getMetadata()).thenReturn(null);
+        ChatClientResponse response = new ChatClientResponse(chatResponse, Map.of());
+
+        TokenUsage result = extractor.extract(response);
+
+        assertThat(result.promptTokens()).isZero();
+        assertThat(result.completionTokens()).isZero();
+        assertThat(result.metadata()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Usage가 없더라도 metadata는 보존해야 한다")
+    void preserveMetadataWithoutUsage() {
+        ChatResponseMetadata metadata = ChatResponseMetadata.builder()
+                .keyValue("model_region", "ap-northeast-2")
+                .build();
+        ChatResponse chatResponse = new ChatResponse(List.of(new Generation(new org.springframework.ai.chat.messages.AssistantMessage("test"))), metadata);
+        ChatClientResponse response = new ChatClientResponse(chatResponse, Map.of());
+
+        TokenUsage result = extractor.extract(response);
+
+        assertThat(result.promptTokens()).isZero();
+        assertThat(result.completionTokens()).isZero();
+        assertThat(result.metadata()).containsEntry("model_region", "ap-northeast-2");
     }
 }

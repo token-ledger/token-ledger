@@ -4,6 +4,6 @@ datasources:
   - name: Prometheus
     type: prometheus
     access: proxy
-    url: http://prometheus:9090  # 도커 컴포즈 서비스 이름으로 접근
+    url: ${PROMETHEUS_URL}  # 고정된 주소 대신, 환경 변수로 구멍을 뚫어둡니다! 로컬과 aws 둘 다 사용하기 위함
     isDefault: true
-    uid: prometheus
+    uid: prometheus-uid

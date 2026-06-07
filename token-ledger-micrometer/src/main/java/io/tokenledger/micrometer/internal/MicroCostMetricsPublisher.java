@@ -7,6 +7,7 @@ import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 import io.tokenledger.core.domain.CostRecordedEvent;
 import io.tokenledger.core.LedgerListener;
+import io.tokenledger.micrometer.MetricsOptions;
 
 import java.util.Map;
 import java.util.Set;
@@ -22,12 +23,17 @@ public class MicroCostMetricsPublisher implements LedgerListener {
     private final Set<String> allowedTagKeys;
 
     public MicroCostMetricsPublisher(MeterRegistry meterRegistry) {
-        this(meterRegistry, Set.of("tenant_id"));
+        this(meterRegistry, MetricsOptions.defaults());
     }
 
     public MicroCostMetricsPublisher(MeterRegistry meterRegistry, Set<String> allowedTagKeys) {
+        this(meterRegistry, MetricsOptions.withAllowedTagKeys(allowedTagKeys));
+    }
+
+    public MicroCostMetricsPublisher(MeterRegistry meterRegistry, MetricsOptions options) {
         this.meterRegistry = meterRegistry;
-        this.allowedTagKeys = Set.copyOf(allowedTagKeys);
+        MetricsOptions resolvedOptions = (options != null) ? options : MetricsOptions.defaults();
+        this.allowedTagKeys = resolvedOptions.allowedTagKeys();
     }
 
     @Override

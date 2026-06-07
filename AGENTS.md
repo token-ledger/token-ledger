@@ -65,13 +65,13 @@ Autoconfigure basic implementation has landed. Future autoconfigure work should 
 
 Gradle dependency cleanup has landed. Library modules should not regain app-only Spring Boot plugin, actuator, or Prometheus dependencies from the root build.
 
-Current Micrometer follow-up:
+Current Micrometer status:
 
-- Introduce a small metrics options/properties object.
-- Keep default allowed tag keys as `tenant_id`.
-- Preserve the existing `MicroCostMetricsPublisher(MeterRegistry)` constructor.
-- Add tests for null/empty tags and multiple allowed tags.
-- Keep metric descriptions and base units stable.
+- `MetricsOptions` exists as the small Micrometer options object.
+- Default allowed tag keys remain `tenant_id`.
+- The existing `MicroCostMetricsPublisher(MeterRegistry)` constructor is preserved.
+- Tests cover null/empty tags and multiple allowed tags.
+- Metric descriptions and base units should remain stable.
 
 ## Starter Contract
 
@@ -316,16 +316,6 @@ Stage and deploy a Central release:
 ```
 
 ## Update History
-
-### 2026-06-07
-
-- Added `token-ledger-notification` module as a `java-library` based thin adapter.
-- Defined `BudgetNotificationEvent` as the standard notification payload record.
-- Defined `BudgetNotificationHandler` interface for user-side event handling.
-- Implemented `BudgetNotificationService` with window-based deduplication logic.
-- Implemented `InMemoryNotificationStateStore` with `(targetId, budgetWindow)` composite key.
-- Registered `NotificationStateStore` and `BudgetNotificationService` as conditional beans in autoconfigure.
-- 아키텍처 결정: 라이브러리는 알림 이벤트를 발행하고 실제 메일/Slack/Webhook 발송은 사용자 애플리케이션이 담당한다.
 
 ### 2026-05-11
 

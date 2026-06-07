@@ -9,6 +9,7 @@ import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
 
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -20,12 +21,21 @@ public class DefaultUsageExtractor implements UsageExtractor {
 
     @Override
     public TokenUsage extract(ChatClientResponse response) {
-        ChatResponse chatResponse = response.chatResponse();
-        if (chatResponse == null || chatResponse.getMetadata().getUsage() == null) {
+        if (response == null) {
             return TokenUsage.from(0, 0);
         }
 
-        Usage usage = chatResponse.getMetadata().getUsage();
+        ChatResponse chatResponse = response.chatResponse();
+        if (chatResponse == null || chatResponse.getMetadata() == null) {
+            return TokenUsage.from(0, 0);
+        }
+
+        ChatResponseMetadata metadata = chatResponse.getMetadata();
+        Usage usage = metadata.getUsage();
+        if (usage == null) {
+            return new TokenUsage(defaultCounts(), copyMetadata(metadata, null));
+        }
+
         Map<TokenType, Long> counts = new EnumMap<>(TokenType.class);
 
         long prompt = (usage.getPromptTokens() != null) ? usage.getPromptTokens() : 0L;
@@ -34,18 +44,12 @@ public class DefaultUsageExtractor implements UsageExtractor {
         counts.put(TokenType.PROMPT, prompt);
         counts.put(TokenType.COMPLETION, completion);
 
-        ChatResponseMetadata metadata = chatResponse.getMetadata();
-        
         Long reasoning = extractReasoningTokens(metadata);
         if (reasoning > 0) {
             counts.put(TokenType.REASONING, reasoning);
         }
 
-        // ChatResponseMetadata에서 Map 정보를 복사하여 TokenUsage 생성
-        Map<String, Object> metadataMap = new java.util.HashMap<>();
-        metadata.keySet().forEach(key -> metadataMap.put(key, metadata.get(key)));
-
-        return new TokenUsage(counts, metadataMap);
+        return new TokenUsage(counts, copyMetadata(metadata, usage.getNativeUsage()));
     }
 
     private Long extractReasoningTokens(ChatResponseMetadata metadata) {
@@ -64,5 +68,21 @@ public class DefaultUsageExtractor implements UsageExtractor {
         }
 
         return 0L;
+    }
+
+    private Map<TokenType, Long> defaultCounts() {
+        Map<TokenType, Long> counts = new EnumMap<>(TokenType.class);
+        counts.put(TokenType.PROMPT, 0L);
+        counts.put(TokenType.COMPLETION, 0L);
+        return counts;
+    }
+
+    private Map<String, Object> copyMetadata(ChatResponseMetadata metadata, Object nativeUsage) {
+        Map<String, Object> metadataMap = new HashMap<>();
+        metadata.keySet().forEach(key -> metadataMap.put(key, metadata.get(key)));
+        if (nativeUsage != null) {
+            metadataMap.put("nativeUsage", nativeUsage);
+        }
+        return metadataMap;
     }
 }
