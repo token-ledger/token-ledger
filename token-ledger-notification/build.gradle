@@ -1,12 +1,9 @@
 plugins {
-    id 'java'
-    id 'org.springframework.boot' version '4.0.6'
-    id 'io.spring.dependency-management' version '1.1.7'
+    id 'java-library'
 }
 
 group = 'io.tokenledger'
-version = '0.0.1-SNAPSHOT'
-description = 'token-ledger-notification'
+version = '0.0.1'
 
 java {
     toolchain {
@@ -19,13 +16,11 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    implementation project(":token-ledger-budget")
-    implementation 'org.springframework.boot:spring-boot-starter-mail'
+    api project(':token-ledger-budget')
+
+    testImplementation 'org.junit.jupiter:junit-jupiter'
 }
 
-tasks.named('test') {
+test {
     useJUnitPlatform()
 }

@@ -2,32 +2,37 @@ package io.tokenledger.notification;
 
 import io.tokenledger.budget.BudgetThreshold;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- *  NotificationStateStore의 메모리 기반 구현체
- *
- * 특징:
- * - 애플리케이션 재시작 시 데이터 초기화됨
- * - 테스트 및 로컬 개발 환경에 적합
- *
+ * 메모리 기반 상태 저장소
  */
 public class InMemoryNotificationStateStore implements NotificationStateStore {
 
-  private final ConcurrentHashMap<String, BudgetThreshold> store =
-      new ConcurrentHashMap<>();
+  private final Map<String, BudgetThreshold> store = new ConcurrentHashMap<>();
+
+  private String key(String targetId, String window) {
+    return targetId + ":" + window;
+  }
 
   @Override
-  public BudgetThreshold getLastNotifiedThreshold(String targetId) {
-    // 기본값: NONE (아직 알림 보낸 적 없음)
-    return store.getOrDefault(targetId, BudgetThreshold.NONE);
+  public BudgetThreshold getLastNotifiedThreshold(
+      String targetId,
+      String budgetWindow
+  ) {
+    return store.getOrDefault(
+        key(targetId, budgetWindow),
+        BudgetThreshold.NONE
+    );
   }
 
   @Override
   public void updateLastNotifiedThreshold(
       String targetId,
+      String budgetWindow,
       BudgetThreshold threshold
   ) {
-    store.put(targetId, threshold);
+    store.put(key(targetId, budgetWindow), threshold);
   }
 }
