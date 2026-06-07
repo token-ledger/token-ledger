@@ -6,7 +6,6 @@ dependencies {
 test {
     useJUnitPlatform()
 
-    // Redis 테스트 제외
+    // Redis Integration Test 제외
     exclude '**/*Redis*'
-    exclude '**/*IT*'
 }
