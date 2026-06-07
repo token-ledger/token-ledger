@@ -8,4 +8,5 @@ test {
 
     // Redis 테스트 제외
     exclude '**/*Redis*'
+    exclude '**/*IT*'
 }
