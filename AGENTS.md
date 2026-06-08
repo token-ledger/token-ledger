@@ -22,9 +22,17 @@ Primary goal: users should eventually add one dependency, `token-ledger-starter`
 | Layer | Modules | Responsibility |
 | --- | --- | --- |
 | API & Domain | `token-ledger-core` | Core models, pricing, cost calculation interfaces, ledger interfaces |
-| Adapter | `token-ledger-spring-ai`, `token-ledger-micrometer`, `token-ledger-budget` | Integrate with Spring AI, Micrometer, and budget policy |
+| Adapter | `token-ledger-spring-ai`, `token-ledger-micrometer`, `token-ledger-budget`, `token-ledger-notification` | Integrate with Spring AI, Micrometer, budget policy, and notification event publishing |
 | Infrastructure | `token-ledger-autoconfigure`, `token-ledger-starter` | Spring Boot auto-configuration and final user dependency |
 | Demo | `token-ledger-sample-app`, `external-consumer-fixture` | Local verification app for starter/autoconfigure integration and published artifact consumption |
+
+## Architecture Decision: Notification
+
+라이브러리는 알림 이벤트를 발행하고 실제 메일/Slack/Webhook 발송은 사용자 애플리케이션이 담당한다.
+
+- `token-ledger-notification`은 알림 이벤트 발행과 중복 방지 로직만 담당한다.
+- 실제 메일/Slack/Webhook 전송은 사용자 애플리케이션의 `BudgetNotificationHandler` 구현체가 담당한다.
+- 라이브러리 내부에서 SMTP 설정이나 외부 메일 서비스를 기본 흐름으로 포함하지 않는다.
 
 ## Module Status
 
@@ -34,7 +42,8 @@ Primary goal: users should eventually add one dependency, `token-ledger-starter`
 | `token-ledger-spring-ai` | Basic implementation complete | `UsageExtractor`, `LedgerAdvisor`, response usage recording |
 | `token-ledger-micrometer` | Basic implementation complete | Tag whitelist and metric metadata implemented; options object is next |
 | `token-ledger-budget` | Basic implementation complete | Needs richer policy/window/store support |
-| `token-ledger-autoconfigure` | Basic implementation complete | Bean registration, property binding, pricing/budget wiring, and ChatClient customizer implemented |
+| `token-ledger-notification` | Basic implementation complete | Event-based notification API; handler interface, in-memory state store, window-based deduplication |
+| `token-ledger-autoconfigure` | Basic implementation complete | Bean registration, property binding, pricing/budget/notification wiring, and ChatClient customizer implemented |
 | `token-ledger-starter` | Basic implementation complete | Thin final user entrypoint that brings runtime modules together |
 | `token-ledger-sample-app` | Basic E2E complete | Direct ledger metrics, budget, and fake Spring AI advisor E2E implemented |
 | `external-consumer-fixture` | Basic implementation complete | Verification module that consumes the published starter from Maven Central by default and can target snapshots explicitly |
@@ -93,6 +102,7 @@ The autoconfigure module provides:
 - `TokenLedgerProperties`
 - Pricing property binding
 - Budget property binding
+- Notification property binding
 - Metrics/tag whitelist property binding
 - Conditional beans for:
   - `CostCalculator`
@@ -104,6 +114,8 @@ The autoconfigure module provides:
   - `BudgetStateStore`
   - `MicroCostMetricsPublisher`
   - `ChatClientCustomizer`
+  - `NotificationStateStore`
+  - `BudgetNotificationService`
 
 Shared configuration prefix:
 
@@ -137,6 +149,8 @@ Default bean graph:
 | `BudgetStateStore` | `token-ledger.budget.enabled` + missing bean | Default in-memory budget state |
 | `BudgetEvaluator` | `token-ledger.budget.enabled` + missing bean | Default budget evaluator |
 | `ChatClientCustomizer` | Spring AI classpath + `LedgerAdvisor` bean | Adds advisor to ChatClient builders |
+| `NotificationStateStore` | `token-ledger.notification.enabled` + missing bean | Window-based notification deduplication state |
+| `BudgetNotificationService` | `token-ledger.notification.enabled` + `BudgetNotificationHandler` bean | Publishes budget notification events to user-defined handler |
 
 `core.internal` implementation classes should remain package-private. Cross-module construction should go through `LedgerComponents` or another deliberate public factory/API. Do not make internal implementation classes public just to satisfy autoconfigure access.
 
@@ -150,6 +164,28 @@ Autoconfigure tests should use `ApplicationContextRunner` and verify:
 - budget beans register when budget is enabled
 - budget-enabled `LedgerAdvisor` calls `BudgetEvaluator`
 - Spring AI classpath registers `UsageExtractor`, `LedgerAdvisor`, and `ChatClientCustomizer`
+- notification beans do not register by default
+- notification beans register when notification is enabled and `BudgetNotificationHandler` bean exists
+
+## Notification Contract
+
+사용자는 `BudgetNotificationHandler`를 Spring Bean으로 구현하여 알림을 받을 수 있다.
+
+```java
+@Component
+class MailBudgetNotificationHandler implements BudgetNotificationHandler {
+    @Override
+    public void handle(BudgetNotificationEvent event) {
+        mailService.sendBudgetAlert(event);
+    }
+}
+```
+
+- `BudgetNotificationHandler` 빈이 없으면 `BudgetNotificationService`는 등록되지 않는다 (no-op).
+- `token-ledger.notification.enabled=true` 설정 시에만 notification 빈이 등록된다.
+- 알림 중복 방지는 `(targetId, budgetWindow)` 조합으로 처리된다.
+- 같은 window 안에서는 낮거나 같은 threshold 재발송이 방지된다.
+- 새 window에서는 50/80/100% 알림이 다시 가능하다.
 
 ## Recommended Configuration Shape
 
@@ -171,6 +207,8 @@ token-ledger:
   budget:
     enabled: false
     monthly-limit: 10.00
+  notification:
+    enabled: false
 ```
 
 ## Sample App Direction
@@ -278,6 +316,13 @@ Stage and deploy a Central release:
 ```
 
 ## Update History
+
+### 2026-06-08
+
+- Added `token-ledger-notification` as an event-based notification API with user-provided `BudgetNotificationHandler` implementations.
+- Kept notification delivery channels such as SMTP, Slack, and Webhook outside the default library flow; applications own concrete delivery.
+- Added autoconfigure wiring for notification state and service beans behind `token-ledger.notification.enabled=true` and a user handler bean.
+- Removed Redis budget store work from the MVP notification path so `token-ledger-budget` remains dependency-light.
 
 ### 2026-05-23
 

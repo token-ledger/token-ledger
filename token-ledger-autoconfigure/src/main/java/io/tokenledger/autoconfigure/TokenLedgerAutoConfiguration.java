@@ -23,6 +23,10 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import io.tokenledger.notification.BudgetNotificationHandler;
+import io.tokenledger.notification.BudgetNotificationService;
+import io.tokenledger.notification.InMemoryNotificationStateStore;
+import io.tokenledger.notification.NotificationStateStore;
 
 /**
  * Token Ledger 라이브러리의 자동 설정을 담당하는 클래스.
@@ -164,5 +168,34 @@ public class TokenLedgerAutoConfiguration {
     public BudgetEvaluator budgetEvaluator(BudgetStateStore budgetStateStore, TokenLedgerProperties properties) {
         return LedgerBudgetComponents.defaultBudgetEvaluator(budgetStateStore, properties.getBudget()
                                                                                          .getMonthlyLimit());
+    }
+
+    /**
+     * 알림 상태 저장소를 등록합니다.
+     * - 중복 알림 방지를 위해 window 단위로 상태를 저장
+     * - token-ledger.notification.enabled=true 일 때만 등록
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "token-ledger.notification", name = "enabled", havingValue = "true")
+    public NotificationStateStore notificationStateStore() {
+        return new InMemoryNotificationStateStore();
+    }
+
+    /**
+     * 예산 알림 서비스를 등록합니다.
+     * - BudgetNotificationHandler 빈이 있을 때만 등록
+     * - 없으면 no-op으로 동작 (알림 서비스 자체가 등록되지 않음)
+     * - token-ledger.notification.enabled=true 일 때만 등록
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnBean(BudgetNotificationHandler.class)
+    @ConditionalOnProperty(prefix = "token-ledger.notification", name = "enabled", havingValue = "true")
+    public BudgetNotificationService budgetNotificationService(
+        BudgetNotificationHandler handler,
+        NotificationStateStore notificationStateStore
+    ) {
+        return new BudgetNotificationService(handler, notificationStateStore);
     }
 }
