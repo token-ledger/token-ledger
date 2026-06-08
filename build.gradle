@@ -90,6 +90,7 @@ jreleaser {
                         'token-ledger-spring-ai',
                         'token-ledger-micrometer',
                         'token-ledger-budget',
+                        'token-ledger-notification',
                         'token-ledger-autoconfigure',
                         'token-ledger-starter'
                     ].each { moduleName ->

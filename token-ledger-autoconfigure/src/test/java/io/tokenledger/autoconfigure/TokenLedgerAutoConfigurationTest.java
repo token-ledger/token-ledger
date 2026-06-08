@@ -70,6 +70,8 @@ class TokenLedgerAutoConfigurationTest {
 
             assertThat(context).doesNotHaveBean(BudgetStateStore.class);
             assertThat(context).doesNotHaveBean(BudgetEvaluator.class);
+            assertThat(context).doesNotHaveBean(NotificationStateStore.class);
+            assertThat(context).doesNotHaveBean(BudgetNotificationService.class);
         });
     }
 
@@ -253,7 +255,6 @@ class TokenLedgerAutoConfigurationTest {
             });
     }
 
-    // notification 비활성화 시 관련 빈이 등록되지 않는지 확인
     @Test
     @DisplayName("token-ledger.notification.enabled=false 일 때 Notification 관련 빈이 등록되지 않아야 한다")
     void shouldNotRegisterNotificationBeansWhenDisabled() {
@@ -265,7 +266,17 @@ class TokenLedgerAutoConfigurationTest {
             });
     }
 
-    // notification 활성화 + 사용자 정의 handler 빈 존재 시 서비스가 등록되는지 확인
+    @Test
+    @DisplayName("notification이 활성화되어도 BudgetNotificationHandler 빈이 없으면 서비스가 등록되지 않아야 한다")
+    void shouldNotRegisterNotificationServiceWhenHandlerMissing() {
+        this.contextRunner
+            .withPropertyValues("token-ledger.notification.enabled=true")
+            .run(context -> {
+                assertThat(context).hasSingleBean(NotificationStateStore.class);
+                assertThat(context).doesNotHaveBean(BudgetNotificationService.class);
+            });
+    }
+
     @Test
     @DisplayName("notification이 활성화되고 BudgetNotificationHandler 빈이 있을 때 BudgetNotificationService가 등록되어야 한다")
     void shouldRegisterNotificationServiceWhenEnabledAndHandlerExists() {
@@ -275,6 +286,8 @@ class TokenLedgerAutoConfigurationTest {
             .run(context -> {
                 assertThat(context).hasSingleBean(NotificationStateStore.class);
                 assertThat(context).hasSingleBean(BudgetNotificationService.class);
+                assertThat(context.getBean(TokenLedgerProperties.class).getNotification().isEnabled())
+                    .isTrue();
             });
     }
 

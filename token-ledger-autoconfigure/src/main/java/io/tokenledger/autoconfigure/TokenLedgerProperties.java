@@ -26,6 +26,9 @@ public class TokenLedgerProperties {
     @NestedConfigurationProperty
     private BudgetProperties budget = new BudgetProperties();
 
+    @NestedConfigurationProperty
+    private NotificationProperties notification = new NotificationProperties();
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -56,6 +59,14 @@ public class TokenLedgerProperties {
 
     public void setBudget(BudgetProperties budget) {
         this.budget = budget;
+    }
+
+    public NotificationProperties getNotification() {
+        return notification;
+    }
+
+    public void setNotification(NotificationProperties notification) {
+        this.notification = notification;
     }
 
     public List<PricingPlan> toPricingPlans() {
@@ -120,6 +131,18 @@ public class TokenLedgerProperties {
 
         public void setMonthlyLimit(java.math.BigDecimal monthlyLimit) {
             this.monthlyLimit = monthlyLimit;
+        }
+    }
+
+    public static class NotificationProperties {
+        private boolean enabled = false;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
         }
     }
 }

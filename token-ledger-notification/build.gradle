@@ -1,38 +1,9 @@
-//plugins {
-//    id 'java-library'
-//}
-//
-//group = 'io.tokenledger'
-//version = '0.0.1'
-//
-//java {
-//    toolchain {
-//        languageVersion = JavaLanguageVersion.of(25)
-//    }
-//}
-//
-//repositories {
-//    mavenCentral()
-//}
-//
-//dependencies {
-//    api project(':token-ledger-budget')
-//
-//    testImplementation 'org.junit.jupiter:junit-jupiter'
-//}
-//
-//test {
-//    useJUnitPlatform()
-//}
-
 plugins {
     id 'java-library'
 }
 
 dependencies {
-    // budget 모듈 의존 (BudgetDecision, BudgetThreshold, BudgetState 사용)
     api project(':token-ledger-budget')
 
-    // Mockito (테스트에서 handler mock 사용)
     testImplementation 'org.mockito:mockito-core'
 }

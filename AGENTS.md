@@ -317,6 +317,19 @@ Stage and deploy a Central release:
 
 ## Update History
 
+### 2026-06-08
+
+- Added `token-ledger-notification` as an event-based notification API with user-provided `BudgetNotificationHandler` implementations.
+- Kept notification delivery channels such as SMTP, Slack, and Webhook outside the default library flow; applications own concrete delivery.
+- Added autoconfigure wiring for notification state and service beans behind `token-ledger.notification.enabled=true` and a user handler bean.
+- Removed Redis budget store work from the MVP notification path so `token-ledger-budget` remains dependency-light.
+
+### 2026-05-23
+
+- Hardened Spring AI usage extraction for null responses, missing metadata, missing usage, and native provider usage preservation.
+- Added `MetricsOptions` for Micrometer publisher configuration while preserving existing constructors and default `tenant_id` tag behavior.
+- Added Micrometer tests for null tags, empty tags, and multiple allowed tag keys.
+
 ### 2026-05-11
 
 - Added Gradle `maven-publish` configuration for library modules with shared POM metadata and optional remote repository credentials.

@@ -35,11 +35,10 @@ public class DefaultBudgetEvaluator implements BudgetEvaluator {
     BigDecimal halfThreshold = monthlyLimit.multiply(BigDecimal.valueOf(0.5));
     BigDecimal warningThreshold = monthlyLimit.multiply(BigDecimal.valueOf(0.8));
 
-    // ✅ 100% 초과
     if (newUsage.compareTo(monthlyLimit) >= 0) {
       BudgetDecision decision = new BudgetDecision(
           BudgetState.BLOCK,
-          BudgetThreshold.EXCEEDED,  // 수정
+          BudgetThreshold.EXCEEDED,
           "월 예산을 초과했습니다",
           newUsage,
           monthlyLimit
@@ -51,7 +50,7 @@ public class DefaultBudgetEvaluator implements BudgetEvaluator {
     if (newUsage.compareTo(warningThreshold) >= 0) {
       return new BudgetDecision(
           BudgetState.WARN,
-          BudgetThreshold.WARNING,  // 수정
+          BudgetThreshold.WARNING,
           "월 예산의 80% 이상 사용",
           newUsage,
           monthlyLimit
@@ -62,7 +61,7 @@ public class DefaultBudgetEvaluator implements BudgetEvaluator {
     if (newUsage.compareTo(halfThreshold) >= 0) {
       return new BudgetDecision(
           BudgetState.ALLOW,
-          BudgetThreshold.HALF,  // 수정
+          BudgetThreshold.HALF,
           "월 예산의 50% 이상 사용",
           newUsage,
           monthlyLimit
@@ -87,10 +86,20 @@ public class DefaultBudgetEvaluator implements BudgetEvaluator {
     BigDecimal halfThreshold = monthlyLimit.multiply(BigDecimal.valueOf(0.5));
     BigDecimal warningThreshold = monthlyLimit.multiply(BigDecimal.valueOf(0.8));
 
+    if (usage.compareTo(monthlyLimit) >= 0) {
+      return new BudgetDecision(
+          BudgetState.BLOCK,
+          BudgetThreshold.EXCEEDED,
+          "월 예산을 초과했습니다",
+          usage,
+          monthlyLimit
+      );
+    }
+
     if (usage.compareTo(warningThreshold) >= 0) {
       return new BudgetDecision(
           BudgetState.WARN,
-          BudgetThreshold.WARNING,  // 수정
+          BudgetThreshold.WARNING,
           "월 예산의 80% 이상 사용",
           usage,
           monthlyLimit
@@ -100,7 +109,7 @@ public class DefaultBudgetEvaluator implements BudgetEvaluator {
     if (usage.compareTo(halfThreshold) >= 0) {
       return new BudgetDecision(
           BudgetState.ALLOW,
-          BudgetThreshold.HALF,  // 수정
+          BudgetThreshold.HALF,
           "월 예산의 50% 이상 사용",
           usage,
           monthlyLimit

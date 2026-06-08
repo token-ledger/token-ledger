@@ -104,4 +104,14 @@ class DefaultBudgetEvaluatorTest {
     assertThat(result.state()).isEqualTo(BudgetState.WARN);
     assertThat(result.threshold()).isEqualTo(BudgetThreshold.WARNING);
   }
+
+  @Test
+  void 현재_사용량_100퍼센트_이상() {
+    when(store.getAccumulatedCost(TAGS)).thenReturn(new BigDecimal("100.00"));
+
+    BudgetDecision result = evaluator.evaluate(TAGS);
+
+    assertThat(result.state()).isEqualTo(BudgetState.BLOCK);
+    assertThat(result.threshold()).isEqualTo(BudgetThreshold.EXCEEDED);
+  }
 }
